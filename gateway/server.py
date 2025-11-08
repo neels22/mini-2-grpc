@@ -34,20 +34,91 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
         Returns a stream of QueryResponseChunk messages
         """
         print(f"[{self.process_id}] Received query request_id={request.request_id}")
+        print(f"  Query type: {request.query_type}")
+        print(f"  Parameters: {list(request.filter.parameters)}")
         
-        # TODO: Forward query to Team Leaders (B and E)
-        # TODO: Aggregate results from teams
-        # TODO: Split results into chunks
+        # Forward query to Team Leaders (B and E) and aggregate results
+        all_measurements = self.forward_to_team_leaders(request)
         
-        # For now, return a dummy response
-        chunk = fire_service_pb2.QueryResponseChunk(
+        print(f"[{self.process_id}] Aggregated {len(all_measurements)} total measurements")
+        
+        # Split results into chunks
+        max_per_chunk = request.max_results_per_chunk if request.max_results_per_chunk > 0 else 100
+        total_results = len(all_measurements)
+        total_chunks = (total_results + max_per_chunk - 1) // max_per_chunk if total_results > 0 else 1
+        
+        if total_results == 0:
+            # Return empty result
+            chunk = fire_service_pb2.QueryResponseChunk(
+                request_id=request.request_id,
+                chunk_number=0,
+                is_last_chunk=True,
+                total_chunks=1,
+                total_results=0
+            )
+            print(f"[{self.process_id}] Sending chunk 0/1 (empty result)")
+            yield chunk
+        else:
+            # Send results in chunks
+            for chunk_idx in range(total_chunks):
+                start_idx = chunk_idx * max_per_chunk
+                end_idx = min(start_idx + max_per_chunk, total_results)
+                chunk_measurements = all_measurements[start_idx:end_idx]
+                
+                chunk = fire_service_pb2.QueryResponseChunk(
+                    request_id=request.request_id,
+                    chunk_number=chunk_idx,
+                    is_last_chunk=(chunk_idx == total_chunks - 1),
+                    total_chunks=total_chunks,
+                    total_results=total_results
+                )
+                chunk.measurements.extend(chunk_measurements)
+                
+                print(f"[{self.process_id}] Sending chunk {chunk_idx + 1}/{total_chunks} with {len(chunk_measurements)} measurements")
+                yield chunk
+    
+    def forward_to_team_leaders(self, request):
+        """
+        Forward query to Team Leaders (B and E) and aggregate results
+        Returns list of all measurements from both teams
+        """
+        all_measurements = []
+        
+        # Create internal query request
+        internal_request = fire_service_pb2.InternalQueryRequest(
             request_id=request.request_id,
-            chunk_number=0,
-            is_last_chunk=True,
-            total_chunks=1,
-            total_results=0
+            original_request_id=str(request.request_id),
+            filter=request.filter,
+            query_type=request.query_type,
+            requesting_process=self.process_id
         )
-        yield chunk
+        
+        # Forward to each team leader
+        for neighbor in self.neighbors:
+            neighbor_id = neighbor['process_id']
+            neighbor_address = f"{neighbor['hostname']}:{neighbor['port']}"
+            
+            print(f"[{self.process_id}] Forwarding query to Team Leader {neighbor_id} at {neighbor_address}")
+            
+            try:
+                # Create channel to team leader
+                channel = grpc.insecure_channel(neighbor_address)
+                stub = fire_service_pb2_grpc.FireQueryServiceStub(channel)
+                
+                # Forward the query
+                response = stub.InternalQuery(internal_request)
+                
+                # Collect measurements
+                measurements_count = len(response.measurements)
+                all_measurements.extend(response.measurements)
+                print(f"[{self.process_id}] Received {measurements_count} measurements from {neighbor_id}")
+                
+                channel.close()
+                
+            except grpc.RpcError as e:
+                print(f"[{self.process_id}] Error contacting {neighbor_id}: {e.code()}: {e.details()}")
+        
+        return all_measurements
     
     def CancelRequest(self, request, context):
         """Handle request cancellation"""

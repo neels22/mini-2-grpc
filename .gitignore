@@ -1,1 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build-python/
+
+# C++
+build/
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# gRPC generated files (keep them for now, but could regenerate)
+# proto/*_pb2.py
+# proto/*_pb2_grpc.py
+# proto/*.pb.cc
+# proto/*.pb.h
+
+# Logs
+*.log
+
+# Data files (if you add them)
+data/
+*.csv
+*.json.bak
