@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 #include <functional>
-#include <unordered_map>
-#include <unordered_set>
+#include <map>
+#include <set>
 
 /**
  * @file FireColumnModel.hpp
@@ -29,14 +29,14 @@ private:
     std::vector<std::string> _full_aqs_codes;
 
     // Index structures for fast lookups
-    std::unordered_map<std::string, std::vector<std::size_t>> _site_indices;
-    std::unordered_map<std::string, std::vector<std::size_t>> _parameter_indices;
-    std::unordered_map<std::string, std::vector<std::size_t>> _aqs_indices;
+    std::map<std::string, std::vector<std::size_t>> _site_indices;
+    std::map<std::string, std::vector<std::size_t>> _parameter_indices;
+    std::map<std::string, std::vector<std::size_t>> _aqs_indices;
     
     // Metadata tracking
-    std::unordered_set<std::string> _unique_sites;
-    std::unordered_set<std::string> _unique_parameters;
-    std::unordered_set<std::string> _unique_agencies;
+    std::set<std::string> _unique_sites;
+    std::set<std::string> _unique_parameters;
+    std::set<std::string> _unique_agencies;
     std::vector<std::string> _datetime_range;
     
     // Geographic bounds tracking
@@ -81,9 +81,9 @@ public:
     // Metadata and Statistics
     std::size_t measurementCount() const noexcept { return _latitudes.size(); }
     std::size_t siteCount() const noexcept { return _unique_sites.size(); }
-    const std::unordered_set<std::string>& uniqueSites() const noexcept { return _unique_sites; }
-    const std::unordered_set<std::string>& uniqueParameters() const noexcept { return _unique_parameters; }
-    const std::unordered_set<std::string>& uniqueAgencies() const noexcept { return _unique_agencies; }
+    const std::set<std::string>& uniqueSites() const noexcept { return _unique_sites; }
+    const std::set<std::string>& uniqueParameters() const noexcept { return _unique_parameters; }
+    const std::set<std::string>& uniqueAgencies() const noexcept { return _unique_agencies; }
     const std::vector<std::string>& datetimeRange() const noexcept { return _datetime_range; }
     void getGeographicBounds(double& min_lat, double& max_lat, 
                             double& min_lon, double& max_lon) const;
