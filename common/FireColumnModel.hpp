@@ -49,7 +49,7 @@ public:
     ~FireColumnModel();
 
     // Data Loading Methods (simplified - no OpenMP)
-    void readFromDirectory(const std::string& directoryPath);
+    void readFromDirectory(const std::string& directoryPath, const std::vector<std::string>& allowedSubdirs = {});
     void readFromCSV(const std::string& filename);
     
     void insertMeasurement(double latitude, double longitude, const std::string& datetime,
@@ -92,6 +92,6 @@ private:
     void updateIndices(std::size_t index);
     void updateGeographicBounds(double latitude, double longitude);
     void updateDatetimeRange(const std::string& datetime);
-    std::vector<std::string> getCSVFiles(const std::string& directoryPath) const;
+    std::vector<std::string> getCSVFiles(const std::string& directoryPath, const std::vector<std::string>& allowedSubdirs = {}) const;
 };
 

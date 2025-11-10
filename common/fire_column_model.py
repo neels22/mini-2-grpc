@@ -48,20 +48,24 @@ class FireColumnModel:
         self._min_longitude: Optional[float] = None
         self._max_longitude: Optional[float] = None
     
-    def read_from_directory(self, directory_path: str) -> None:
+    def read_from_directory(self, directory_path: str, allowed_subdirs: List[str] = None) -> None:
         """
         Load all CSV files from a directory (recursively).
         
         Args:
             directory_path: Path to directory containing CSV files
+            allowed_subdirs: Optional list of subdirectory names to load (for partitioning)
         """
-        csv_files = self._get_csv_files(directory_path)
+        csv_files = self._get_csv_files(directory_path, allowed_subdirs)
         
         if not csv_files:
             print(f"[FireColumnModel] No CSV files found in: {directory_path}")
             return
         
-        print(f"[FireColumnModel] Processing {len(csv_files)} CSV files from {directory_path}...")
+        if allowed_subdirs:
+            print(f"[FireColumnModel] Processing {len(csv_files)} CSV files from {len(allowed_subdirs)} subdirectories...")
+        else:
+            print(f"[FireColumnModel] Processing {len(csv_files)} CSV files from {directory_path}...")
         
         for csv_file in csv_files:
             try:
@@ -226,12 +230,27 @@ class FireColumnModel:
         if not self._datetime_range[1] or datetime > self._datetime_range[1]:
             self._datetime_range[1] = datetime
     
-    def _get_csv_files(self, directory_path: str) -> List[str]:
-        """Recursively find all CSV files in directory."""
+    def _get_csv_files(self, directory_path: str, allowed_subdirs: List[str] = None) -> List[str]:
+        """
+        Recursively find all CSV files in directory.
+        
+        Args:
+            directory_path: Base directory path
+            allowed_subdirs: Optional list of allowed subdirectory names (for partitioning)
+        """
         csv_files = []
         
         try:
             for root, dirs, files in os.walk(directory_path):
+                # If we have partition restrictions, check if current directory is allowed
+                if allowed_subdirs:
+                    # Get the immediate subdirectory name relative to directory_path
+                    rel_path = os.path.relpath(root, directory_path)
+                    # Check if this directory or its parent is in allowed list
+                    dir_name = rel_path.split(os.sep)[0]
+                    if dir_name != '.' and dir_name not in allowed_subdirs:
+                        continue  # Skip this directory
+                
                 for file in files:
                     if file.endswith('.csv'):
                         csv_files.append(os.path.join(root, file))

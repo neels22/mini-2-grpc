@@ -9,13 +9,12 @@
       "process_id": "C",
       "hostname": "localhost",
       "port": 50053
-    },
-    {
-      "process_id": "D",
-      "hostname": "localhost",
-      "port": 50054
     }
   ],
-  "description": "Team Green Leader - coordinates workers C and D"
+  "data_partition": {
+    "enabled": true,
+    "directories": ["20200810", "20200814", "20200815", "20200816", "20200817"]
+  },
+  "description": "Team Green Leader - coordinates worker C (removed D to avoid duplication)"
 }
 

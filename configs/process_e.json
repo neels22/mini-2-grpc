@@ -16,6 +16,10 @@
       "port": 50054
     }
   ],
-  "description": "Team Pink Leader - coordinates workers F and D"
+  "data_partition": {
+    "enabled": true,
+    "directories": ["20200905", "20200906", "20200907", "20200908", "20200909", "20200910", "20200911", "20200912", "20200913"]
+  },
+  "description": "Team Pink Leader - Sep 5-13 data partition, coordinates workers F and D"
 }
 

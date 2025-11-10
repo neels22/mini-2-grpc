@@ -54,8 +54,17 @@ public:
                   << " for Team " << team_ << std::endl;
         
         // Initialize FireColumnModel with Team Green data subset
-        std::cout << "[" << process_id_ << "] Loading data from data/ directory..." << std::endl;
-        data_model_.readFromDirectory("data/");
+        std::vector<std::string> allowed_dirs;
+        if (config.contains("data_partition") && config["data_partition"]["enabled"]) {
+            for (const auto& dir : config["data_partition"]["directories"]) {
+                allowed_dirs.push_back(dir.get<std::string>());
+            }
+            std::cout << "[" << process_id_ << "] Loading partitioned data from " 
+                      << allowed_dirs.size() << " subdirectories..." << std::endl;
+        } else {
+            std::cout << "[" << process_id_ << "] Loading all data from data/ directory..." << std::endl;
+        }
+        data_model_.readFromDirectory("data/", allowed_dirs);
         std::cout << "[" << process_id_ << "] Data model initialized with " 
                   << data_model_.measurementCount() << " measurements" << std::endl;
     }

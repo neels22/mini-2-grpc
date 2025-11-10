@@ -17,15 +17,20 @@ FireColumnModel::FireColumnModel()
 
 FireColumnModel::~FireColumnModel() = default;
 
-void FireColumnModel::readFromDirectory(const std::string& directoryPath) {
-    auto csvFiles = getCSVFiles(directoryPath);
+void FireColumnModel::readFromDirectory(const std::string& directoryPath, const std::vector<std::string>& allowedSubdirs) {
+    auto csvFiles = getCSVFiles(directoryPath, allowedSubdirs);
     
     if (csvFiles.empty()) {
         std::cout << "[FireColumnModel] No CSV files found in: " << directoryPath << std::endl;
         return;
     }
     
-    std::cout << "[FireColumnModel] Processing " << csvFiles.size() << " CSV files..." << std::endl;
+    if (!allowedSubdirs.empty()) {
+        std::cout << "[FireColumnModel] Processing " << csvFiles.size() << " CSV files from " 
+                  << allowedSubdirs.size() << " partitioned subdirectories..." << std::endl;
+    } else {
+        std::cout << "[FireColumnModel] Processing " << csvFiles.size() << " CSV files..." << std::endl;
+    }
     
     for (const auto& file : csvFiles) {
         try {
@@ -174,13 +179,33 @@ void FireColumnModel::updateDatetimeRange(const std::string& datetime) {
     }
 }
 
-std::vector<std::string> FireColumnModel::getCSVFiles(const std::string& directoryPath) const {
+std::vector<std::string> FireColumnModel::getCSVFiles(const std::string& directoryPath, const std::vector<std::string>& allowedSubdirs) const {
     std::vector<std::string> csvFiles;
     
     try {
         for (const auto& entry : std::filesystem::recursive_directory_iterator(directoryPath)) {
             if (entry.is_regular_file()) {
                 const std::string filename = entry.path().string();
+                
+                // If we have partition restrictions, check if file is in allowed subdirectory
+                if (!allowedSubdirs.empty()) {
+                    bool allowed = false;
+                    for (const auto& subdir : allowedSubdirs) {
+                        // Build subdirectory path, handling trailing slashes
+                        std::string subdirPath = directoryPath;
+                        if (!subdirPath.empty() && subdirPath.back() != '/') {
+                            subdirPath += "/";
+                        }
+                        subdirPath += subdir;
+                        
+                        if (filename.find(subdirPath) != std::string::npos) {
+                            allowed = true;
+                            break;
+                        }
+                    }
+                    if (!allowed) continue;  // Skip this file
+                }
+                
                 if (filename.size() >= 4 && 
                     filename.substr(filename.size() - 4) == ".csv") {
                     csvFiles.push_back(filename);

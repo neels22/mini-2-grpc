@@ -5,6 +5,10 @@
   "hostname": "localhost",
   "port": 50056,
   "neighbors": [],
-  "description": "Team Pink Worker - processes queries for Team Pink data subset"
+  "data_partition": {
+    "enabled": true,
+    "directories": ["20200914", "20200915", "20200916", "20200917", "20200918", "20200919", "20200920", "20200921", "20200922", "20200923", "20200924"]
+  },
+  "description": "Team Pink Worker - Sep 14-24 data partition"
 }
 

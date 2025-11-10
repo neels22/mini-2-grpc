@@ -5,6 +5,10 @@
   "hostname": "localhost",
   "port": 50053,
   "neighbors": [],
-  "description": "Team Green Worker - processes queries for Team Green data subset"
+  "data_partition": {
+    "enabled": true,
+    "directories": ["20200818", "20200819", "20200820", "20200821", "20200822", "20200823", "20200824", "20200825", "20200826"]
+  },
+  "description": "Team Green Worker - Aug 18-26 data partition"
 }
 

@@ -35,7 +35,13 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
         self.data_model = FireColumnModel()
         data_path = os.path.join(os.path.dirname(__file__), '..', 'data')
         if os.path.exists(data_path):
-            self.data_model.read_from_directory(data_path)
+            # Check if partition is configured
+            allowed_dirs = None
+            if 'data_partition' in config and config['data_partition'].get('enabled'):
+                allowed_dirs = config['data_partition'].get('directories', [])
+                print(f"[{self.process_id}] Loading partitioned data from: {allowed_dirs}")
+            
+            self.data_model.read_from_directory(data_path, allowed_dirs)
             print(f"[{self.process_id}] Data model initialized with {self.data_model.measurement_count()} measurements")
         else:
             print(f"[{self.process_id}] Data directory not found: {data_path}")
