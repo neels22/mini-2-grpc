@@ -16,7 +16,7 @@ import fire_service_pb2_grpc
 
 
 def test_query(stub):
-    """Test the Query RPC method"""
+    """Test the Query RPC method with progress display"""
     print("\n=== Testing Query RPC ===")
     
     # Create a query request
@@ -31,24 +31,49 @@ def test_query(stub):
         filter=query_filter,
         query_type="filter",
         require_chunked=True,
-        max_results_per_chunk=100
+        max_results_per_chunk=1000
     )
     
     print(f"Sending query request_id={request.request_id}")
     print(f"  Parameters: {list(request.filter.parameters)}")
     print(f"  AQI range: {request.filter.min_aqi} - {request.filter.max_aqi}")
+    print(f"  Chunk size: {request.max_results_per_chunk}")
+    print()
     
     # Send request and receive streaming response
+    total_measurements = 0
+    chunks_received = 0
+    
     try:
         for chunk in stub.Query(request):
-            print(f"\nReceived chunk #{chunk.chunk_number}")
-            print(f"  Request ID: {chunk.request_id}")
-            print(f"  Measurements: {len(chunk.measurements)}")
-            print(f"  Total results: {chunk.total_results}")
-            print(f"  Total chunks: {chunk.total_chunks}")
-            print(f"  Is last chunk: {chunk.is_last_chunk}")
+            chunks_received += 1
+            total_measurements += len(chunk.measurements)
+            
+            # Progress display
+            if chunk.total_chunks > 0:
+                progress = (chunk.chunk_number + 1) / chunk.total_chunks * 100
+                bar_length = 30
+                filled = int(bar_length * (chunk.chunk_number + 1) / chunk.total_chunks)
+                bar = '█' * filled + '░' * (bar_length - filled)
+                print(f"\r  Progress: [{bar}] {progress:5.1f}% | "
+                      f"Chunk {chunk.chunk_number + 1}/{chunk.total_chunks} | "
+                      f"Results: {total_measurements:,}/{chunk.total_results:,}", 
+                      end='', flush=True)
+            
+            if chunk.is_last_chunk:
+                print()  # New line after progress bar
+                print(f"\n✓ Query completed!")
+                print(f"  Total measurements received: {total_measurements:,}")
+                print(f"  Total chunks received: {chunks_received}")
+                
+                # Show sample measurements from last chunk
+                if len(chunk.measurements) > 0:
+                    print(f"\n  Sample measurements from last chunk:")
+                    for i, m in enumerate(chunk.measurements[:3]):
+                        print(f"    {i+1}. {m.site_name}: {m.parameter}={m.concentration:.2f} {m.unit} (AQI={m.aqi})")
+                        
     except grpc.RpcError as e:
-        print(f"Error: {e.code()}: {e.details()}")
+        print(f"\n✗ Error: {e.code()}: {e.details()}")
 
 
 def test_get_status(stub):

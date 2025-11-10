@@ -9,6 +9,8 @@ import grpc
 from concurrent import futures
 import sys
 import os
+import time
+import threading
 
 # Add proto directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'proto'))
@@ -25,57 +27,116 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
         self.process_id = config['identity']
         self.role = config['role']
         self.neighbors = config['neighbors']
+        
+        # Request tracking for cancellation and status
+        self.active_requests = {}  # request_id -> {status, start_time, chunks_sent, cancelled}
+        self.request_lock = threading.Lock()
+        
         print(f"[{self.process_id}] Initialized as {self.role}")
         print(f"[{self.process_id}] Neighbors: {[n['process_id'] for n in self.neighbors]}")
     
     def Query(self, request, context):
         """
-        Handle client query request
+        Handle client query request with progressive chunked streaming
         Returns a stream of QueryResponseChunk messages
         """
-        print(f"[{self.process_id}] Received query request_id={request.request_id}")
+        request_id = request.request_id
+        start_time = time.time()
+        
+        print(f"[{self.process_id}] Received query request_id={request_id}")
         print(f"  Query type: {request.query_type}")
         print(f"  Parameters: {list(request.filter.parameters)}")
+        print(f"  Chunk size: {request.max_results_per_chunk}")
         
-        # Forward query to Team Leaders (B and E) and aggregate results
-        all_measurements = self.forward_to_team_leaders(request)
+        # Register request
+        with self.request_lock:
+            self.active_requests[request_id] = {
+                'status': 'processing',
+                'start_time': start_time,
+                'chunks_sent': 0,
+                'total_chunks': 0,
+                'cancelled': False
+            }
         
-        print(f"[{self.process_id}] Aggregated {len(all_measurements)} total measurements")
-        
-        # Split results into chunks
-        max_per_chunk = request.max_results_per_chunk if request.max_results_per_chunk > 0 else 100
-        total_results = len(all_measurements)
-        total_chunks = (total_results + max_per_chunk - 1) // max_per_chunk if total_results > 0 else 1
-        
-        if total_results == 0:
-            # Return empty result
-            chunk = fire_service_pb2.QueryResponseChunk(
-                request_id=request.request_id,
-                chunk_number=0,
-                is_last_chunk=True,
-                total_chunks=1,
-                total_results=0
-            )
-            print(f"[{self.process_id}] Sending chunk 0/1 (empty result)")
-            yield chunk
-        else:
-            # Send results in chunks
-            for chunk_idx in range(total_chunks):
-                start_idx = chunk_idx * max_per_chunk
-                end_idx = min(start_idx + max_per_chunk, total_results)
-                chunk_measurements = all_measurements[start_idx:end_idx]
-                
+        try:
+            # Forward query to Team Leaders (B and E) and aggregate results
+            all_measurements = self.forward_to_team_leaders(request)
+            
+            # Check if cancelled before streaming
+            if self._is_cancelled(request_id):
+                print(f"[{self.process_id}] Request {request_id} cancelled before streaming")
+                return
+            
+            print(f"[{self.process_id}] Aggregated {len(all_measurements)} total measurements")
+            
+            # Split results into chunks
+            max_per_chunk = request.max_results_per_chunk if request.max_results_per_chunk > 0 else 1000
+            total_results = len(all_measurements)
+            total_chunks = (total_results + max_per_chunk - 1) // max_per_chunk if total_results > 0 else 1
+            
+            # Update total chunks
+            with self.request_lock:
+                if request_id in self.active_requests:
+                    self.active_requests[request_id]['total_chunks'] = total_chunks
+            
+            if total_results == 0:
+                # Return empty result
                 chunk = fire_service_pb2.QueryResponseChunk(
-                    request_id=request.request_id,
-                    chunk_number=chunk_idx,
-                    is_last_chunk=(chunk_idx == total_chunks - 1),
-                    total_chunks=total_chunks,
-                    total_results=total_results
+                    request_id=request_id,
+                    chunk_number=0,
+                    is_last_chunk=True,
+                    total_chunks=1,
+                    total_results=0
                 )
-                chunk.measurements.extend(chunk_measurements)
-                
-                print(f"[{self.process_id}] Sending chunk {chunk_idx + 1}/{total_chunks} with {len(chunk_measurements)} measurements")
+                print(f"[{self.process_id}] Sending chunk 0/1 (empty result)")
                 yield chunk
+                self._update_chunks_sent(request_id, 1)
+            else:
+                # Send results in chunks
+                for chunk_idx in range(total_chunks):
+                    # Check for cancellation before each chunk
+                    if self._is_cancelled(request_id):
+                        print(f"[{self.process_id}] Request {request_id} cancelled at chunk {chunk_idx}/{total_chunks}")
+                        break
+                    
+                    # Check if client disconnected
+                    if context.is_active() == False:
+                        print(f"[{self.process_id}] Client disconnected for request {request_id}")
+                        self._mark_cancelled(request_id)
+                        break
+                    
+                    start_idx = chunk_idx * max_per_chunk
+                    end_idx = min(start_idx + max_per_chunk, total_results)
+                    chunk_measurements = all_measurements[start_idx:end_idx]
+                    
+                    chunk = fire_service_pb2.QueryResponseChunk(
+                        request_id=request_id,
+                        chunk_number=chunk_idx,
+                        is_last_chunk=(chunk_idx == total_chunks - 1),
+                        total_chunks=total_chunks,
+                        total_results=total_results
+                    )
+                    chunk.measurements.extend(chunk_measurements)
+                    
+                    print(f"[{self.process_id}] Sending chunk {chunk_idx + 1}/{total_chunks} with {len(chunk_measurements)} measurements")
+                    yield chunk
+                    self._update_chunks_sent(request_id, chunk_idx + 1)
+                    
+                    # Small delay to simulate progressive streaming
+                    time.sleep(0.01)
+            
+            # Mark as completed
+            elapsed = time.time() - start_time
+            print(f"[{self.process_id}] Request {request_id} completed in {elapsed:.2f}s")
+            self._mark_completed(request_id)
+            
+        except Exception as e:
+            print(f"[{self.process_id}] Error processing request {request_id}: {e}")
+            self._mark_failed(request_id)
+            raise
+        finally:
+            # Cleanup after delay
+            threading.Timer(60.0, lambda: self._cleanup_request(request_id)).start()
     
     def forward_to_team_leaders(self, request):
         """
@@ -122,29 +183,61 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
     
     def CancelRequest(self, request, context):
         """Handle request cancellation"""
-        print(f"[{self.process_id}] Cancel request_id={request.request_id}")
+        request_id = request.request_id
+        print(f"[{self.process_id}] Cancel request_id={request_id}")
         
-        # TODO: Cancel ongoing query and notify downstream processes
-        
-        return fire_service_pb2.StatusResponse(
-            request_id=request.request_id,
-            status="cancelled",
-            chunks_delivered=0,
-            total_chunks=0
-        )
+        with self.request_lock:
+            if request_id in self.active_requests:
+                self.active_requests[request_id]['cancelled'] = True
+                self.active_requests[request_id]['status'] = 'cancelled'
+                chunks_sent = self.active_requests[request_id]['chunks_sent']
+                total_chunks = self.active_requests[request_id]['total_chunks']
+                
+                print(f"[{self.process_id}] Request {request_id} marked as cancelled ({chunks_sent}/{total_chunks} chunks sent)")
+                
+                return fire_service_pb2.StatusResponse(
+                    request_id=request_id,
+                    status="cancelled",
+                    chunks_delivered=chunks_sent,
+                    total_chunks=total_chunks
+                )
+            else:
+                print(f"[{self.process_id}] Request {request_id} not found (may have already completed)")
+                return fire_service_pb2.StatusResponse(
+                    request_id=request_id,
+                    status="not_found",
+                    chunks_delivered=0,
+                    total_chunks=0
+                )
     
     def GetStatus(self, request, context):
         """Handle status check"""
-        print(f"[{self.process_id}] Status request_id={request.request_id}")
+        request_id = request.request_id
+        print(f"[{self.process_id}] Status check for request_id={request_id}")
         
-        # TODO: Check actual status from request tracking
-        
-        return fire_service_pb2.StatusResponse(
-            request_id=request.request_id,
-            status="pending",
-            chunks_delivered=0,
-            total_chunks=0
-        )
+        with self.request_lock:
+            if request_id in self.active_requests:
+                req_info = self.active_requests[request_id]
+                status = req_info['status']
+                chunks_sent = req_info['chunks_sent']
+                total_chunks = req_info['total_chunks']
+                
+                print(f"[{self.process_id}] Status: {status}, Progress: {chunks_sent}/{total_chunks}")
+                
+                return fire_service_pb2.StatusResponse(
+                    request_id=request_id,
+                    status=status,
+                    chunks_delivered=chunks_sent,
+                    total_chunks=total_chunks
+                )
+            else:
+                print(f"[{self.process_id}] Request {request_id} not found in active requests")
+                return fire_service_pb2.StatusResponse(
+                    request_id=request_id,
+                    status="not_found",
+                    chunks_delivered=0,
+                    total_chunks=0
+                )
     
     def InternalQuery(self, request, context):
         """Handle internal queries from other processes"""
@@ -168,6 +261,46 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
             request_id=request.request_id,
             status="acknowledged"
         )
+    
+    # Helper methods for request tracking
+    def _is_cancelled(self, request_id):
+        """Check if a request has been cancelled"""
+        with self.request_lock:
+            if request_id in self.active_requests:
+                return self.active_requests[request_id]['cancelled']
+        return False
+    
+    def _mark_cancelled(self, request_id):
+        """Mark a request as cancelled"""
+        with self.request_lock:
+            if request_id in self.active_requests:
+                self.active_requests[request_id]['cancelled'] = True
+                self.active_requests[request_id]['status'] = 'cancelled'
+    
+    def _mark_completed(self, request_id):
+        """Mark a request as completed"""
+        with self.request_lock:
+            if request_id in self.active_requests:
+                self.active_requests[request_id]['status'] = 'completed'
+    
+    def _mark_failed(self, request_id):
+        """Mark a request as failed"""
+        with self.request_lock:
+            if request_id in self.active_requests:
+                self.active_requests[request_id]['status'] = 'failed'
+    
+    def _update_chunks_sent(self, request_id, chunks_sent):
+        """Update the number of chunks sent"""
+        with self.request_lock:
+            if request_id in self.active_requests:
+                self.active_requests[request_id]['chunks_sent'] = chunks_sent
+    
+    def _cleanup_request(self, request_id):
+        """Remove request from tracking after delay"""
+        with self.request_lock:
+            if request_id in self.active_requests:
+                print(f"[{self.process_id}] Cleaning up request {request_id}")
+                del self.active_requests[request_id]
 
 
 def load_config(config_path):
