@@ -10,11 +10,13 @@ from concurrent import futures
 import sys
 import os
 
-# Add proto directory to path
+# Add proto and common directories to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'proto'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common'))
 
 import fire_service_pb2
 import fire_service_pb2_grpc
+from fire_column_model import FireColumnModel
 
 
 class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
@@ -29,7 +31,15 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
         print(f"[{self.process_id}] Initialized as {self.role} for Team {self.team}")
         print(f"[{self.process_id}] Neighbors: {[n['process_id'] for n in self.neighbors]}")
         
-        # TODO: Initialize FireColumnModel for Team Pink data
+        # Initialize FireColumnModel with Team Pink data
+        self.data_model = FireColumnModel()
+        data_path = os.path.join(os.path.dirname(__file__), '..', 'data')
+        if os.path.exists(data_path):
+            self.data_model.read_from_directory(data_path)
+            print(f"[{self.process_id}] Data model initialized with {self.data_model.measurement_count()} measurements")
+        else:
+            print(f"[{self.process_id}] Data directory not found: {data_path}")
+            print(f"[{self.process_id}] Data model initialized with 0 measurements")
     
     def Query(self, request, context):
         """
@@ -59,10 +69,12 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
         print(f"  Original request: {request.original_request_id}")
         print(f"  Query type: {request.query_type}")
         
-        # TODO: Query local FireColumnModel data (E can also act as worker)
+        # Query local FireColumnModel data (E acts as worker too)
+        local_measurements = self._query_local_data(request)
+        print(f"[{self.process_id}] Found {len(local_measurements)} local measurements")
         
         # Forward query to workers F and D
-        all_measurements = self.forward_to_workers(request)
+        all_measurements = local_measurements + self.forward_to_workers(request)
         
         print(f"[{self.process_id}] Aggregated {len(all_measurements)} measurements from workers")
         
@@ -77,6 +89,60 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
         
         print(f"[{self.process_id}] Returning response with {len(response.measurements)} measurements")
         return response
+    
+    def _query_local_data(self, request):
+        """
+        Query local FireColumnModel data
+        Returns list of FireMeasurement proto messages
+        """
+        matching_indices = []
+        
+        if request.HasField('filter'):
+            filter_obj = request.filter
+            
+            # Filter by parameter (PM2.5, PM10, etc.)
+            if len(filter_obj.parameters) > 0:
+                param = filter_obj.parameters[0]
+                matching_indices = self.data_model.get_indices_by_parameter(param)
+            # Filter by site name
+            elif len(filter_obj.site_names) > 0:
+                site = filter_obj.site_names[0]
+                matching_indices = self.data_model.get_indices_by_site(site)
+            # Filter by AQI range
+            elif filter_obj.min_aqi > 0 or filter_obj.max_aqi > 0:
+                for i in range(self.data_model.measurement_count()):
+                    aqi = self.data_model.aqis[i]
+                    if ((filter_obj.min_aqi == 0 or aqi >= filter_obj.min_aqi) and
+                        (filter_obj.max_aqi == 0 or aqi <= filter_obj.max_aqi)):
+                        matching_indices.append(i)
+            else:
+                # No specific filter - return all
+                matching_indices = list(range(self.data_model.measurement_count()))
+        else:
+            # No filter - return all measurements
+            matching_indices = list(range(self.data_model.measurement_count()))
+        
+        # Convert to proto messages
+        measurements = []
+        for idx in matching_indices:
+            measurement = fire_service_pb2.FireMeasurement(
+                latitude=self.data_model.latitudes[idx],
+                longitude=self.data_model.longitudes[idx],
+                datetime=self.data_model.datetimes[idx],
+                parameter=self.data_model.parameters[idx],
+                concentration=self.data_model.concentrations[idx],
+                unit=self.data_model.units[idx],
+                raw_concentration=self.data_model.raw_concentrations[idx],
+                aqi=self.data_model.aqis[idx],
+                category=self.data_model.categories[idx],
+                site_name=self.data_model.site_names[idx],
+                agency_name=self.data_model.agency_names[idx],
+                aqs_code=self.data_model.aqs_codes[idx],
+                full_aqs_code=self.data_model.full_aqs_codes[idx]
+            )
+            measurements.append(measurement)
+        
+        return measurements
     
     def forward_to_workers(self, request):
         """

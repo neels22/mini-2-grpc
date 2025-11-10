@@ -55,12 +55,10 @@ public:
                   << " for Team " << team_ << std::endl;
         
         // Initialize FireColumnModel with Team Pink data subset
-        // For now, model is empty - data loading can be added later
+        std::cout << "[" << process_id_ << "] Loading data from data/ directory..." << std::endl;
+        data_model_.readFromDirectory("data/");
         std::cout << "[" << process_id_ << "] Data model initialized with " 
                   << data_model_.measurementCount() << " measurements" << std::endl;
-        
-        // TODO: Load actual CSV data when available
-        // Example: data_model_.readFromDirectory("data/team_pink/");
     }
     
     /**
