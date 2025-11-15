@@ -1,0 +1,60 @@
+{
+  "deployment_name": "three_computer",
+  "description": "Template for deploying on 3 computers",
+  "computers": [
+    {
+      "id": "computer1",
+      "hostname": "REPLACE_WITH_COMPUTER1_IP",
+      "description": "Gateway + Worker C",
+      "processes": ["A", "C"],
+      "ports": {
+        "A": 50051,
+        "C": 50053
+      },
+      "data_partitions": {
+        "C": ["20200818", "20200819", "20200820", "20200821", "20200822", "20200823", "20200824", "20200825", "20200826"]
+      }
+    },
+    {
+      "id": "computer2",
+      "hostname": "REPLACE_WITH_COMPUTER2_IP",
+      "description": "Team Green Leader + Worker D",
+      "processes": ["B", "D"],
+      "ports": {
+        "B": 50052,
+        "D": 50054
+      },
+      "data_partitions": {
+        "B": ["20200810", "20200814", "20200815", "20200816", "20200817"],
+        "D": ["20200827", "20200828", "20200829", "20200830", "20200831", "20200901", "20200902", "20200903", "20200904"]
+      }
+    },
+    {
+      "id": "computer3",
+      "hostname": "REPLACE_WITH_COMPUTER3_IP",
+      "description": "Team Pink Leader + Worker F",
+      "processes": ["E", "F"],
+      "ports": {
+        "E": 50055,
+        "F": 50056
+      },
+      "data_partitions": {
+        "E": ["20200905", "20200906", "20200907", "20200908", "20200909", "20200910", "20200911", "20200912", "20200913"],
+        "F": ["20200914", "20200915", "20200916", "20200917", "20200918", "20200919", "20200920", "20200921", "20200922", "20200923", "20200924"]
+      }
+    }
+  ],
+  "topology": {
+    "A_neighbors": ["B", "E"],
+    "B_neighbors": ["C"],
+    "E_neighbors": ["D", "F"]
+  },
+  "instructions": [
+    "1. Replace COMPUTER1_IP, COMPUTER2_IP, COMPUTER3_IP with actual IP addresses",
+    "2. Ensure all computers are on the same network",
+    "3. Verify ports 50051-50056 are open on all computers",
+    "4. Copy project files to all computers",
+    "5. Use setup script to generate individual process configs"
+  ]
+}
+
