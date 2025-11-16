@@ -10,32 +10,32 @@ echo "Chunked Streaming + Request Control"
 echo "========================================="
 echo ""
 
-# Check if all servers are built
-echo "Checking server builds..."
-if [ ! -f "build/server_c" ] || [ ! -f "build/server_d" ] || [ ! -f "build/server_f" ]; then
-    echo "❌ C++ servers not built. Run 'make servers' first."
+# Check if Python servers exist
+echo "Checking Python servers..."
+if [ ! -f "team_green/server_c.py" ] || [ ! -f "team_pink/server_d.py" ] || [ ! -f "team_pink/server_f.py" ]; then
+    echo "❌ Python worker servers not found."
     exit 1
 fi
-echo "✓ C++ servers found"
+echo "✓ All Python servers found"
 echo ""
 
 # Start all servers in background
-echo "Starting all 6 servers..."
+echo "Starting all 6 servers (All Python)..."
 echo ""
 
-# Start C++ workers
+# Start Python workers
 echo "Starting Server C (Team Green Worker)..."
-./build/server_c configs/process_c.json > /tmp/server_c.log 2>&1 &
+./venv/bin/python3 team_green/server_c.py configs/process_c.json > /tmp/server_c.log 2>&1 &
 PID_C=$!
 sleep 2
 
 echo "Starting Server D (Team Pink Worker)..."
-./build/server_d configs/process_d.json > /tmp/server_d.log 2>&1 &
+./venv/bin/python3 team_pink/server_d.py configs/process_d.json > /tmp/server_d.log 2>&1 &
 PID_D=$!
 sleep 2
 
 echo "Starting Server F (Team Pink Worker)..."
-./build/server_f configs/process_f.json > /tmp/server_f.log 2>&1 &
+./venv/bin/python3 team_pink/server_f.py configs/process_f.json > /tmp/server_f.log 2>&1 &
 PID_F=$!
 sleep 2
 
