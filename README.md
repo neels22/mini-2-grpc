@@ -14,8 +14,17 @@ A multi-process distributed system for querying fire air quality data using gRPC
 
 ## 🚀 Quick Start
 
-### Run the Full System Test
+### Single-Computer: Full System Test (Recommended First)
+
+From the project root:
+
 ```bash
+# 1) Create / activate virtualenv (first time only)
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 2) Run the automated end‑to‑end test
 ./test_phase2.sh
 ```
 
@@ -26,6 +35,57 @@ This automated script:
 - Shows server logs and statistics
 
 **Press Enter when done to stop all servers.**
+
+### Two-Computer: Multi-Computer Deployment (Python Servers)
+
+Deployment topology actually used in `MULTI_COMPUTER_RESULTS.md`:
+
+- **Computer 1 (10.10.10.1)**: Processes **A, B, D**  
+- **Computer 2 (10.10.10.2)**: Processes **C, E, F**
+
+Minimal commands (after cloning project and creating `venv` on each machine):
+
+**On Computer 1 (10.10.10.1):**
+
+```bash
+cd mini-2-grpc
+source venv/bin/activate
+
+# D – Team Pink worker on Computer 1
+python3 team_pink/server_d.py configs/process_d.json &
+
+# B – Team Green leader on Computer 1
+python3 team_green/server_b.py configs/process_b.json &
+
+# A – Gateway on Computer 1
+python3 gateway/server.py configs/process_a.json &
+```
+
+**On Computer 2 (10.10.10.2):**
+
+```bash
+cd mini-2-grpc
+source venv/bin/activate
+
+# C – Team Green worker on Computer 2
+python3 team_green/server_c.py configs/process_c.json &
+
+# F – Team Pink worker on Computer 2
+python3 team_pink/server_f.py configs/process_f.json &
+
+# E – Team Pink leader on Computer 2
+python3 team_pink/server_e.py configs/process_e.json &
+```
+
+**Client (run from Computer 1 or any machine that can reach 10.10.10.1):**
+
+```bash
+cd mini-2-grpc
+source venv/bin/activate
+python3 client/test_client.py
+```
+
+For full details (IP configuration, firewall, performance numbers), see `MULTI_COMPUTER_SETUP.md` and `MULTI_COMPUTER_RESULTS.md`.
 
 ---
 
@@ -46,6 +106,8 @@ This automated script:
 
 ## 🏗️ System Architecture
 
+Single-computer (logical) view:
+
 ```
                       Client
                         |
@@ -65,6 +127,43 @@ This automated script:
            (Worker)       (Worker)   (Worker)
            (50053)        (50054)    (50056)
 ```
+
+Two-computer (physical) deployment used in `MULTI_COMPUTER_RESULTS.md`  
+(**Team Green:** A–B–C–D path, **Team Pink:** A–E–D–F path, streaming starts at **Gateway A**):
+
+```
+                         (Team Green)                        (Team Pink)
+               ┌───────────────────────────┐        ┌───────────────────────────┐
+               │       Team Green (ABC)    │        │       Team Pink (DEF)     │
+               └───────────────────────────┘        └───────────────────────────┘
+
+               Client (Computer 1 - 10.10.10.1)
+                          |
+                          v
+                   Gateway A (10.10.10.1:50051)
+                   [Streaming Starts Here]
+                   [Chunked Streaming + Request Control]
+                         /                      \
+                        /                        \
+                       v                          v
+        B - Green Leader (10.10.10.1:50052)   E - Pink Leader (10.10.10.2:50055)
+          [Aggregates B+C+D]                    [Aggregates E+D+F]
+                     |                              /           \
+                     v                             v             v
+   C - Green Worker (10.10.10.2:50053)   D - Shared Worker   F - Pink Worker
+        [Team Green data]                (10.10.10.1:50054)  (10.10.10.2:50056)
+                                         [Shared across      [Team Pink data]
+                                          Green & Pink]
+```
+
+### Deployment Mapping (Python Servers)
+
+| Computer | IP Address   | Processes | Files to Run                                           |
+|----------|--------------|-----------|--------------------------------------------------------|
+| **1**    | `10.10.10.1` | A, B, D   | `gateway/server.py`, `team_green/server_b.py`, `team_pink/server_d.py` |
+| **2**    | `10.10.10.2` | C, E, F   | `team_green/server_c.py`, `team_pink/server_e.py`, `team_pink/server_f.py` |
+
+All six processes are **Python gRPC servers**. The optional C++ client (`client/client.cpp`) can be built and run from either computer if desired.
 
 ### Data Distribution
 - **Server B:** 134K measurements (Aug 10-17)
@@ -125,7 +224,8 @@ Step 10: A streams results in chunks to client
 ### Phase 1: Data Partitioning
 - ✅ 6-process distributed system with gRPC
 - ✅ Intelligent data partitioning (no overlaps)
-- ✅ Hybrid C++ and Python servers
+- ✅ Python-based server stack (A–F all Python services)
+- ✅ Optional C++ client implementation
 - ✅ Configuration-driven design
 - ✅ Columnar data model (FireColumnModel)
 
@@ -143,12 +243,14 @@ Step 10: A streams results in chunks to client
 
 ### Basic Test Client
 ```bash
-./venv/bin/python3 client/test_client.py
+source venv/bin/activate
+python3 client/test_client.py
 ```
 
 ### Advanced Client (All Features)
 ```bash
-./venv/bin/python3 client/advanced_client.py
+source venv/bin/activate
+python3 client/advanced_client.py
 ```
 
 Demonstrates:
@@ -161,23 +263,30 @@ Demonstrates:
 
 ## 🔧 Build & Setup
 
-### Build C++ Servers
+### Python Environment (Servers & Python Clients)
+
 ```bash
-make clean
-make servers
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
-### Install Python Dependencies
+### Optional: Build C++ Client (for C++ demo only)
+
+The running system now uses **Python servers** for all six processes (A–F).  
+You only need the C++ build if you want to run the C++ client in `client/client.cpp`.
+
 ```bash
-pip install -r requirements.txt
+make clean
+make client      # builds build/fire_client
 ```
 
 ### Rebuild Proto Files (if needed)
 ```bash
-# Python
+# Python stubs (used by all servers and Python clients)
 python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. proto/fire_service.proto
 
-# C++
+# C++ stubs (only needed if you modify / rebuild the optional C++ client)
 protoc -I. --cpp_out=. --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` proto/fire_service.proto
 ```
 
@@ -198,6 +307,22 @@ protoc -I. --cpp_out=. --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plu
 - **Before:** Gateway holds 1.17M measurements (200MB)
 - **After:** Streams 1K at a time (~100KB per chunk)
 - **Savings:** 80% memory reduction
+
+### gRPC Message Size Limits (Before vs After)
+
+Originally, the gateway and leaders used the **default gRPC message size limits**, which caused failures when aggregating large result sets (hundreds of thousands of `FireMeasurement` messages in a single `InternalQueryResponse`).  
+We increased the limits to **100MB** for both send and receive on all internal channels (`A→B`, `A→E`, `B→C`, `E→D`, `E→F`).
+
+| Aspect                        | Before Increase (Default Limits)              | After Increase (`100MB` limits)                           |
+|------------------------------|-----------------------------------------------|-----------------------------------------------------------|
+| Max message size             | Platform default (small, implementation-defined) | Explicit 100MB for send/receive on all internal channels |
+| Large `InternalQueryResponse` | Risk of `RESOURCE_EXHAUSTED` / `StatusCode.RESOURCE_EXHAUSTED` or `INTERNAL` errors when aggregating hundreds of thousands of rows | No size-related errors observed across all tests         |
+| Max successful result size   | Unreliable for full-system query (aggregation could exceed default limit) | Full 421,606‑row query succeeds reliably                 |
+| Single-computer tests        | Occasional failures on biggest queries (pre‑fix) | 100% success across 15+ scenarios                        |
+| Multi-computer tests         | Not feasible with full dataset (risk of backpressure / errors) | Cross-network query (2 computers) works with 421,606 rows |
+| Impact on latency/throughput | Potential retries/failures; unpredictable      | Stable: up to 124,008 measurements/s; < 2s to first chunk on simple queries |
+
+**Takeaway:** increasing gRPC message limits removed size-related failures and made large, aggregated responses (hundreds of thousands of measurements) reliable, without measurably hurting latency or throughput. The dominant cost remains **query processing and aggregation**, not serialization or network overhead.
 
 ---
 
@@ -258,22 +383,23 @@ print(f"Status: {status.status}")
 ```
 mini-2-grpc/
 ├── gateway/
-│   └── server.py              # Gateway with chunked streaming
+│   └── server.py              # Gateway A with chunked streaming + request control
 ├── team_green/
-│   ├── server_b.py            # Python leader
-│   └── server_c.cpp           # C++ worker
+│   ├── server_b.py            # Python leader (B, Team Green)
+│   └── server_c.py            # Python worker (C, Team Green)
 ├── team_pink/
-│   ├── server_d.cpp           # C++ worker
-│   ├── server_e.py            # Python leader
-│   └── server_f.cpp           # C++ worker
+│   ├── server_d.py            # Python worker (D, Team Pink – runs on Computer 1)
+│   ├── server_e.py            # Python leader (E, Team Pink – runs on Computer 2)
+│   └── server_f.py            # Python worker (F, Team Pink)
 ├── common/
-│   ├── FireColumnModel.hpp/.cpp  # C++ data model
-│   └── fire_column_model.py      # Python data model
+│   ├── FireColumnModel.hpp/.cpp  # C++ data model (used by optional C++ client)
+│   └── fire_column_model.py      # Python data model (used by all Python servers)
 ├── proto/
 │   └── fire_service.proto     # gRPC definitions
 ├── client/
-│   ├── test_client.py         # Basic test
-│   └── advanced_client.py     # Advanced demo
+│   ├── test_client.py         # Basic Python client (used in tests and multi-computer deployment)
+│   ├── advanced_client.py     # Advanced Python demo (cancellation, status, progress)
+│   └── client.cpp             # Optional C++ client
 ├── configs/
 │   └── process_[a-f].json     # Server configs
 ├── data/
@@ -288,7 +414,7 @@ mini-2-grpc/
 ### Core Requirements
 - ✅ 6 processes with gRPC communication
 - ✅ Correct overlay topology (AB, BC, AE, EF, ED)
-- ✅ Both C++ and Python servers
+- ✅ Python-based server implementations (A–F) plus optional C++ client
 - ✅ Configuration-driven (no hardcoding)
 - ✅ Non-overlapping data partitions
 - ✅ Realistic data structures
@@ -355,13 +481,14 @@ See `QUICK_START_PHASE2.md` for common issues and solutions.
 
 **Quick fix for most problems:**
 ```bash
-# Kill all servers
-pkill -f server_
+# Kill all Python servers
+pkill -f "python3 gateway"
+pkill -f "python3 team_"
 
-# Rebuild
-make clean && make servers
+# (Optional) rebuild C++ client if you use it
+make clean && make client
 
-# Test again
+# Test again (single-computer)
 ./test_phase2.sh
 ```
 

@@ -397,7 +397,7 @@ Large query:        4.7s   █████████████████�
 **Test environment:**
 - macOS (Darwin 24.6.0)
 - Python 3.x with gRPC
-- C++ servers (clang++ compiled)
+- Python servers for all processes (A–F)
 - Single computer (localhost)
 - Date: November 14, 2025
 

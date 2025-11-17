@@ -171,24 +171,13 @@ git clone <your-repo-url>
 cd mini-2-grpc
 ```
 
-#### 2.2 Build C++ Servers on Each Computer
+#### 2.2 Prepare Python Environment on Each Computer
 
-**On each computer that will run C++ servers:**
+**On each computer that will run Python servers:**
 ```bash
 cd mini-2-grpc
-make servers
-```
-
-**Computer 1 (2-computer setup):** Build D
-**Computer 2 (2-computer setup):** Build C, F
-**Computer 3 (3-computer setup):** Build appropriate servers
-
-#### 2.3 Verify Python Environment
-
-**On each computer running Python servers:**
-```bash
-cd mini-2-grpc
-source venv/bin/activate  # Or create new venv if needed
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -288,12 +277,13 @@ scp configs/process_c.json user@192.168.1.101:~/mini-2-grpc/configs/
 **On Computer 2 (Workers C, F):**
 ```bash
 cd mini-2-grpc
+source venv/bin/activate
 
-# Terminal 1
-./build/server_c configs/process_c.json
+# Terminal 1 - Worker C
+python3 team_green/server_c.py configs/process_c.json
 
-# Terminal 2
-./build/server_f configs/process_f.json
+# Terminal 2 - Worker F
+python3 team_pink/server_f.py configs/process_f.json
 ```
 
 **On Computer 1:**
@@ -301,17 +291,17 @@ cd mini-2-grpc
 cd mini-2-grpc
 source venv/bin/activate
 
-# Terminal 1 - Server D
-./build/server_d configs/process_d.json
+# Terminal 1 - Server D (shared worker)
+python3 team_pink/server_d.py configs/process_d.json
 
-# Terminal 2 - Server B
+# Terminal 2 - Server B (Team Green leader)
 python3 team_green/server_b.py configs/process_b.json
 
 # Wait for B to start, then Terminal 3 - Gateway A
 python3 gateway/server.py configs/process_a.json
 ```
 
-**On Computer 2 (if separate):**
+**On Computer 2 (Team Pink leader):**
 ```bash
 # Terminal 3 - Server E
 python3 team_pink/server_e.py configs/process_e.json

@@ -53,7 +53,7 @@ Gateway A (10.10.10.1)
 - [x] 6 processes (A, B, C, D, E, F)
 - [x] Correct overlay topology (AB, BC, AE, EF, ED)
 - [x] Two teams (Green: ABC, Pink: DEF)
-- [x] Both C++ and Python servers
+- [x] Python servers for all processes (A–F) with optional C++ client
 - [x] Configuration-driven (no hardcoding)
 - [x] Non-overlapping data partitions
 
@@ -150,7 +150,7 @@ All documentation is complete and comprehensive:
 ### Architecture
 - **Hierarchical aggregation:** Workers → Leaders → Gateway
 - **Configuration-driven:** All IPs/ports in config files
-- **Hybrid implementation:** C++ workers + Python coordinators
+- **Python implementation:** Python servers for Gateway, leaders, and workers
 - **Columnar storage:** FireColumnModel for efficiency
 
 ### Communication
@@ -241,9 +241,9 @@ All documentation is complete and comprehensive:
 ## Project Deliverables
 
 ### Code
-- ✅ 6 server processes (3 Python, 3 C++)
+- ✅ 6 server processes (all Python)
 - ✅ gRPC protocol definitions
-- ✅ Data models (C++ and Python)
+- ✅ Data models (Python servers, optional C++ client)
 - ✅ Test clients (basic + advanced)
 - ✅ Build system (Makefile)
 - ✅ Configuration files (single + multi-computer)

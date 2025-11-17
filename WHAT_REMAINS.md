@@ -164,7 +164,7 @@ Computer 2 (192.168.1.101):
 
 **Hour 1: Setup**
 - Copy project to all computers
-- Build C++ servers on each computer
+- Create Python virtualenv + install deps on each computer
 - Test network connectivity between computers
 - Update firewall rules if needed
 
@@ -259,10 +259,10 @@ The project is 100% complete when:
 **Computer 1 (Gateway + some servers):**
 ```bash
 cd mini-2-grpc
+source venv/bin/activate
 
 # Start your assigned servers (example for 2-computer setup)
-./build/server_d configs/process_d.json &
-source venv/bin/activate
+python3 team_pink/server_d.py configs/process_d.json &
 python3 team_green/server_b.py configs/process_b.json &
 python3 gateway/server.py configs/process_a.json &
 ```
@@ -270,11 +270,11 @@ python3 gateway/server.py configs/process_a.json &
 **Computer 2 (Workers + leader):**
 ```bash
 cd mini-2-grpc
+source venv/bin/activate
 
 # Start your assigned servers
-./build/server_c configs/process_c.json &
-./build/server_f configs/process_f.json &
-source venv/bin/activate
+python3 team_green/server_c.py configs/process_c.json &
+python3 team_pink/server_f.py configs/process_f.json &
 python3 team_pink/server_e.py configs/process_e.json &
 ```
 

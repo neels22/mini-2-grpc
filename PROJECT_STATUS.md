@@ -175,12 +175,12 @@ See `QUICK_START_PHASE2.md` for detailed instructions.
 ## Key Files
 
 ### Core System
-- `gateway/server.py` - Gateway with chunked streaming
-- `team_green/server_b.py` - Team Green leader
-- `team_green/server_c.cpp` - Team Green worker
-- `team_pink/server_d.cpp` - Team Pink worker
-- `team_pink/server_e.py` - Team Pink leader
-- `team_pink/server_f.cpp` - Team Pink worker
+- `gateway/server.py` - Gateway with chunked streaming and request control
+- `team_green/server_b.py` - Team Green leader (Python)
+- `team_green/server_c.py` - Team Green worker (Python)
+- `team_pink/server_d.py` - Team Pink worker (Python, shared between teams)
+- `team_pink/server_e.py` - Team Pink leader (Python)
+- `team_pink/server_f.py` - Team Pink worker (Python)
 
 ### Data Model
 - `common/FireColumnModel.hpp/.cpp` - C++ columnar storage
@@ -212,7 +212,7 @@ See `QUICK_START_PHASE2.md` for detailed instructions.
 - ✅ 6 processes (A, B, C, D, E, F)
 - ✅ Correct overlay topology (AB, BC, AE, EF, ED)
 - ✅ Two teams (Green: ABC, Pink: DEF)
-- ✅ Both C++ and Python servers
+- ✅ Python server implementations for all processes (A–F) with optional C++ client
 - ✅ No hardcoding (config-driven)
 - ✅ Logical sub-directories
 - ✅ Makefile for C++ builds

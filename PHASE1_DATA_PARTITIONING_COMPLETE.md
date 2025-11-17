@@ -76,7 +76,7 @@ All 5 servers (B, C, D, E, F) now:
 3. Pass allowed directories to `FireColumnModel`
 4. Load only their assigned partition
 
-**Example from server_c.cpp:**
+**Example from the original C++ worker implementation (`server_c.cpp`, now ported to Python in `team_green/server_c.py`):**
 ```cpp
 std::vector<std::string> allowed_dirs;
 if (config.contains("data_partition") && config["data_partition"]["enabled"]) {
@@ -171,11 +171,11 @@ Total: 1,167,525 measurements ✅
 - `common/fire_column_model.py` - Python partitioning support
 - `common/FireColumnModel.hpp` - C++ header with partitioning
 - `common/FireColumnModel.cpp` - C++ implementation with partitioning
-- `team_green/server_b.py` - Partition config reading
-- `team_green/server_c.cpp` - Partition config reading
-- `team_pink/server_d.cpp` - Partition config reading
-- `team_pink/server_e.py` - Partition config reading
-- `team_pink/server_f.cpp` - Partition config reading
+- `team_green/server_b.py` - Partition config reading (Python)
+- `team_green/server_c.py` - Partition config reading (Python)
+- `team_pink/server_d.py` - Partition config reading (Python)
+- `team_pink/server_e.py` - Partition config reading (Python)
+- `team_pink/server_f.py` - Partition config reading (Python)
 
 ## Next Steps (Phase 2)
 

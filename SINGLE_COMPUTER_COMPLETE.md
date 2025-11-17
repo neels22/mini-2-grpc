@@ -44,7 +44,7 @@ All processes running on localhost (single computer)
 - ✅ 6 processes (A, B, C, D, E, F) with correct topology
 - ✅ gRPC communication between all processes
 - ✅ Team Green (A, B, C) and Team Pink (A, E, D, F)
-- ✅ Both Python and C++ servers
+- ✅ Python servers for all processes (A–F)
 - ✅ Configuration-driven (no hardcoding)
 
 ### 2. Data Partitioning
@@ -144,53 +144,52 @@ All processes running on localhost (single computer)
 ```
 
 This automated script:
-1. Builds C++ servers if needed
-2. Starts all 6 servers in background
-3. Runs comprehensive tests
-4. Shows server logs and statistics
-5. Waits for your input before cleanup
+1. Starts all 6 Python servers in the correct order
+2. Runs comprehensive tests (basic + advanced clients)
+3. Shows server logs and statistics
+4. Waits for your input before cleanup
 
 **Press Enter when done to stop all servers.**
 
-### Manual Start (Step-by-Step)
+### Manual Start (Step-by-Step, all Python servers)
 
-**Step 1: Build C++ Servers**
+**Step 1: Create / activate virtualenv and install deps**
 ```bash
-make servers
-```
-
-**Step 2: Start Servers (in separate terminals)**
-
-Terminal 1 - Server C:
-```bash
-./build/server_c configs/process_c.json
-```
-
-Terminal 2 - Server D:
-```bash
-./build/server_d configs/process_d.json
-```
-
-Terminal 3 - Server F:
-```bash
-./build/server_f configs/process_f.json
-```
-
-Terminal 4 - Server B:
-```bash
+cd mini-2-grpc
+python3 -m venv venv
 source venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Step 2: Start Servers (in separate terminals or background)**
+
+Terminal 1 - Server C (Team Green worker):
+```bash
+python3 team_green/server_c.py configs/process_c.json
+```
+
+Terminal 2 - Server D (Team Pink worker, shared):
+```bash
+python3 team_pink/server_d.py configs/process_d.json
+```
+
+Terminal 3 - Server F (Team Pink worker):
+```bash
+python3 team_pink/server_f.py configs/process_f.json
+```
+
+Terminal 4 - Server B (Team Green leader):
+```bash
 python3 team_green/server_b.py configs/process_b.json
 ```
 
-Terminal 5 - Server E:
+Terminal 5 - Server E (Team Pink leader):
 ```bash
-source venv/bin/activate
 python3 team_pink/server_e.py configs/process_e.json
 ```
 
 Terminal 6 - Gateway A:
 ```bash
-source venv/bin/activate
 python3 gateway/server.py configs/process_a.json
 ```
 
@@ -207,7 +206,6 @@ python3 client/advanced_client.py
 ### Stop All Servers
 
 ```bash
-pkill -f "server_"
 pkill -f "python3 gateway"
 pkill -f "python3 team_"
 ```
@@ -335,15 +333,15 @@ mini-2-grpc/
 ├── gateway/
 │   └── server.py                 # Gateway A (chunked streaming)
 ├── team_green/
-│   ├── server_b.py              # Team Green leader
-│   └── server_c.cpp             # Team Green worker
+│   ├── server_b.py              # Team Green leader (Python)
+│   └── server_c.py              # Team Green worker (Python)
 ├── team_pink/
-│   ├── server_d.cpp             # Worker D
-│   ├── server_e.py              # Team Pink leader
-│   └── server_f.cpp             # Worker F
+│   ├── server_d.py              # Worker D (Python, shared across teams)
+│   ├── server_e.py              # Team Pink leader (Python)
+│   └── server_f.py              # Worker F (Python)
 ├── common/
-│   ├── FireColumnModel.hpp/.cpp # C++ data model
-│   └── fire_column_model.py     # Python data model
+│   ├── FireColumnModel.hpp/.cpp # C++ data model (used by optional C++ client)
+│   └── fire_column_model.py     # Python data model (used by servers)
 ├── proto/
 │   └── fire_service.proto       # gRPC service definitions
 ├── client/

@@ -463,13 +463,14 @@ The system meets all assignment requirements and performs admirably with minimal
 
 ## Appendix: Quick Reference Commands
 
-### Start All Servers
+### Start All Servers (Python)
 
 **On Computer 1 (10.10.10.1):**
 ```bash
 # Terminal 1
 cd ~/Desktop/mini-2-grpc
-./build/server_d configs/process_d.json
+source venv/bin/activate
+python3 team_pink/server_d.py configs/process_d.json
 
 # Terminal 2
 source venv/bin/activate
@@ -484,10 +485,12 @@ python3 gateway/server.py configs/process_a.json
 ```bash
 # Terminal 1
 cd ~/Desktop/mini-2-grpc
-./build/server_c configs/process_c.json
+source venv/bin/activate
+python3 team_green/server_c.py configs/process_c.json
 
 # Terminal 2
-./build/server_f configs/process_f.json
+source venv/bin/activate
+python3 team_pink/server_f.py configs/process_f.json
 
 # Terminal 3
 source venv/bin/activate

@@ -143,10 +143,10 @@ cd mini-2-grpc
 - **`README.md`** - Quick reference
 
 ### Code Entry Points
-- **`test_phase2.sh`** ⭐ - Automated test script
-- **`gateway/server.py`** - Gateway A (entry point)
-- **`client/test_client.py`** - Basic client
-- **`client/advanced_client.py`** - Advanced features demo
+- **`test_phase2.sh`** ⭐ - Automated test script (single-computer)
+- **`gateway/server.py`** - Gateway A (entry point, Python)
+- **`client/test_client.py`** - Basic Python client
+- **`client/advanced_client.py`** - Advanced Python features demo
 
 ---
 
@@ -157,19 +157,20 @@ cd mini-2-grpc
 ./test_phase2.sh
 ```
 
-### Manual Start (if you want control)
+### Manual Start (single computer, all Python servers)
 ```bash
-# Build C++ servers
-make servers
+cd mini-2-grpc
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
 # Start in separate terminals (or with &)
-./build/server_c configs/process_c.json &
-./build/server_d configs/process_d.json &
-./build/server_f configs/process_f.json &
-source venv/bin/activate
-python3 team_green/server_b.py configs/process_b.json &
-python3 team_pink/server_e.py configs/process_e.json &
-python3 gateway/server.py configs/process_a.json &
+python3 team_green/server_c.py configs/process_c.json &   # Worker C
+python3 team_pink/server_d.py configs/process_d.json &    # Worker D
+python3 team_pink/server_f.py configs/process_f.json &    # Worker F
+python3 team_green/server_b.py configs/process_b.json &   # Leader B
+python3 team_pink/server_e.py configs/process_e.json &    # Leader E
+python3 gateway/server.py configs/process_a.json &        # Gateway A
 ```
 
 ### Run Client
