@@ -2,7 +2,7 @@
 
 A multi-process distributed system for querying fire air quality data using gRPC, featuring **chunked streaming**, **request control**, and intelligent data partitioning across 5 worker servers.
 
-## 🎯 Project Status: 100% Complete ✅
+## 🎯 Project Status: 
 
 ✅ **Phase 1:** Data Partitioning (COMPLETE)  
 ✅ **Phase 2:** Chunked Streaming & Request Control (COMPLETE)  
