@@ -190,6 +190,8 @@ pkill -f "python3 team_"
 
 ## System Architecture
 
+Logical (single-computer) view:
+
 ```
 Client
   ↓
@@ -204,7 +206,32 @@ B has 134K local, E has 245K local
 Total: 1,167,525 measurements
 ```
 
-**For multi-computer:** Replace `localhost` with actual IPs
+Physical (two-computer) deployment (matching `MULTI_COMPUTER_RESULTS.md`):
+
+```
+                         (Team Green)                        (Team Pink)
+               ┌───────────────────────────┐        ┌───────────────────────────┐
+               │       Team Green (ABC)    │        │       Team Pink (DEF)     │
+               └───────────────────────────┘        └───────────────────────────┘
+
+               Client (Computer 1 - 10.10.10.1)
+                          |
+                          v
+                   Gateway A (10.10.10.1:50051)
+                   [Streaming Starts Here]
+                   [Chunked Streaming + Request Control]
+                         /                      \
+                        /                        \
+                       v                          v
+        B - Green Leader (10.10.10.1:50052)   E - Pink Leader (10.10.10.2:50055)
+          [Aggregates B+C+D]                    [Aggregates E+D+F]
+                     |                              /           \
+                     v                             v             v
+   C - Green Worker (10.10.10.2:50053)   D - Shared Worker   F - Pink Worker
+        [Team Green data]                (10.10.10.1:50054)  (10.10.10.2:50056)
+                                         [Shared across      [Team Pink data]
+                                          Green & Pink]
+```
 
 ---
 

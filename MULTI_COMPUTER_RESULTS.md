@@ -54,23 +54,31 @@ Connection Quality: Excellent (stable, low jitter)
 
 ## System Architecture
 
+Physical (two-computer) view used for multi-computer tests:
+
 ```
-                    Client (Computer 1)
+                         (Team Green)                        (Team Pink)
+               ┌───────────────────────────┐        ┌───────────────────────────┐
+               │       Team Green (ABC)    │        │       Team Pink (DEF)     │
+               └───────────────────────────┘        └───────────────────────────┘
+
+               Client (Computer 1 - 10.10.10.1)
                           |
                           v
                    Gateway A (10.10.10.1:50051)
-                   [Computer 1]
-                      /          \
-                     /            \
-                    v              v
-              Server B          Server E
-           (10.10.10.1)      (10.10.10.2)
-           [Computer 1]      [Computer 2]
-                |              /        \
-                v             v          v
-            Server C      Server D    Server F
-         (10.10.10.2)  (10.10.10.1) (10.10.10.2)
-         [Computer 2]  [Computer 1] [Computer 2]
+                   [Streaming Starts Here]
+                   [Chunked Streaming + Request Control]
+                         /                      \
+                        /                        \
+                       v                          v
+        B - Green Leader (10.10.10.1:50052)   E - Pink Leader (10.10.10.2:50055)
+          [Aggregates B+C+D]                    [Aggregates E+D+F]
+                     |                              /           \
+                     v                             v             v
+   C - Green Worker (10.10.10.2:50053)   D - Shared Worker   F - Pink Worker
+        [Team Green data]                (10.10.10.1:50054)  (10.10.10.2:50056)
+                                         [Shared across      [Team Pink data]
+                                          Green & Pink]
 ```
 
 ### Communication Paths (Cross-Computer Links)

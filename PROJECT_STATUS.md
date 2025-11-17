@@ -136,6 +136,8 @@ Successfully deployed on **2 physical computers**:
 
 ## System Architecture
 
+Logical (single-computer) view:
+
 ```
 Client
   |
@@ -156,6 +158,28 @@ Server C    Server D   Server F
 Data Distribution:
 B: 134K    C: 243K    D: 244K    E: 245K    F: 300K
 Total: 1.17M measurements across 43 date directories
+```
+
+Physical (two-computer) deployment (used in multi-computer tests):
+
+```
+                      Client (Computer 1 - 10.10.10.1)
+                                 |
+                                 v
+                       Gateway A (10.10.10.1:50051)
+                       [Streaming Starts Here]
+                       [Chunked Streaming + Request Control]
+                              /                      \
+                             /                        \
+                            v                          v
+             B - Green Leader (10.10.10.1:50052)   E - Pink Leader (10.10.10.2:50055)
+               [Aggregates B+C+D]                    [Aggregates E+D+F]
+                          |                              /           \
+                          v                             v             v
+      C - Green Worker (10.10.10.2:50053)   D - Shared Worker   F - Pink Worker
+           [Team Green data]                (10.10.10.1:50054)  (10.10.10.2:50056)
+                                            [Shared across      [Team Pink data]
+                                             Green & Pink]
 ```
 
 ---
