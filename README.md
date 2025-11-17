@@ -129,7 +129,7 @@ Single-computer (logical) view:
 ```
 
 Two-computer (physical) deployment used in `MULTI_COMPUTER_RESULTS.md`  
-(**Team Green:** A–B–C–D path, **Team Pink:** A–E–D–F path, streaming starts at **Gateway A**):
+(**Team Green:** A–B–C path, **Team Pink:** A–E–D–F path, streaming starts at **Gateway A**):
 
 ```
                          (Team Green)                        (Team Pink)
@@ -146,14 +146,13 @@ Two-computer (physical) deployment used in `MULTI_COMPUTER_RESULTS.md`
                          /                      \
                         /                        \
                        v                          v
-        B - Green Leader (10.10.10.1:50052)   E - Pink Leader (10.10.10.2:50055)
-          [Aggregates B+C+D]                    [Aggregates E+D+F]
-                     |                              /           \
-                     v                             v             v
-   C - Green Worker (10.10.10.2:50053)   D - Shared Worker   F - Pink Worker
-        [Team Green data]                (10.10.10.1:50054)  (10.10.10.2:50056)
-                                         [Shared across      [Team Pink data]
-                                          Green & Pink]
+                B - Green Leader (10.10.10.1:50052)   E - Pink Leader (10.10.10.2:50055)
+                    [Aggregates B+C]                     [Aggregates E+D+F]
+                                         |                              /           \
+                                         v                             v             v
+     C - Green Worker (10.10.10.2:50053)   D - Pink Worker     F - Pink Worker
+                [Team Green data]                (10.10.10.1:50054)  (10.10.10.2:50056)
+                                                                                 [Reports only to E] [Team Pink data]
 ```
 
 ### Deployment Mapping (Python Servers)

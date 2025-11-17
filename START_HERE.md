@@ -223,14 +223,13 @@ Physical (two-computer) deployment (matching `MULTI_COMPUTER_RESULTS.md`):
                          /                      \
                         /                        \
                        v                          v
-        B - Green Leader (10.10.10.1:50052)   E - Pink Leader (10.10.10.2:50055)
-          [Aggregates B+C+D]                    [Aggregates E+D+F]
-                     |                              /           \
-                     v                             v             v
-   C - Green Worker (10.10.10.2:50053)   D - Shared Worker   F - Pink Worker
-        [Team Green data]                (10.10.10.1:50054)  (10.10.10.2:50056)
-                                         [Shared across      [Team Pink data]
-                                          Green & Pink]
+            B - Green Leader (10.10.10.1:50052)   E - Pink Leader (10.10.10.2:50055)
+               [Aggregates B+C]                     [Aggregates E+D+F]
+                               |                              /           \
+                               v                             v             v
+    C - Green Worker (10.10.10.2:50053)   D - Pink Worker     F - Pink Worker
+            [Team Green data]                (10.10.10.1:50054)  (10.10.10.2:50056)
+                                                             [Reports only to E] [Team Pink data]
 ```
 
 ---

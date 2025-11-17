@@ -172,14 +172,13 @@ Physical (two-computer) deployment (used in multi-computer tests):
                               /                      \
                              /                        \
                             v                          v
-             B - Green Leader (10.10.10.1:50052)   E - Pink Leader (10.10.10.2:50055)
-               [Aggregates B+C+D]                    [Aggregates E+D+F]
-                          |                              /           \
-                          v                             v             v
-      C - Green Worker (10.10.10.2:50053)   D - Shared Worker   F - Pink Worker
-           [Team Green data]                (10.10.10.1:50054)  (10.10.10.2:50056)
-                                            [Shared across      [Team Pink data]
-                                             Green & Pink]
+            B - Green Leader (10.10.10.1:50052)   E - Pink Leader (10.10.10.2:50055)
+               [Aggregates B+C]                     [Aggregates E+D+F]
+                               |                              /           \
+                               v                             v             v
+    C - Green Worker (10.10.10.2:50053)   D - Pink Worker     F - Pink Worker
+            [Team Green data]                (10.10.10.1:50054)  (10.10.10.2:50056)
+                                                             [Reports only to E] [Team Pink data]
 ```
 
 ---
@@ -202,7 +201,7 @@ See `QUICK_START_PHASE2.md` for detailed instructions.
 - `gateway/server.py` - Gateway with chunked streaming and request control
 - `team_green/server_b.py` - Team Green leader (Python)
 - `team_green/server_c.py` - Team Green worker (Python)
-- `team_pink/server_d.py` - Team Pink worker (Python, shared between teams)
+- `team_pink/server_d.py` - Team Pink worker (Python, reports to leader E)
 - `team_pink/server_e.py` - Team Pink leader (Python)
 - `team_pink/server_f.py` - Team Pink worker (Python)
 

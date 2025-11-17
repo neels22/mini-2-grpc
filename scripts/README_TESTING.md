@@ -114,8 +114,8 @@ When you run the test client, watch the server terminals. You should see:
 - All 6 servers start without errors
 - Client connects to Process A
 - Process A forwards to B and E
-- Process B forwards to C and D
-- Process E forwards to F and D
+- Process B forwards to C
+- Process E forwards to D and F
 - All responses propagate back to client
 - No connection errors
 
@@ -129,8 +129,8 @@ When you run the test client, watch the server terminals. You should see:
 ✅ gRPC communication setup  
 ✅ Configuration system  
 ✅ Network overlay topology  
-✅ Query forwarding A→B→C,D  
-✅ Query forwarding A→E→F,D  
+✅ Query forwarding A→B→C  
+✅ Query forwarding A→E→D,F  
 ✅ Result aggregation  
 ✅ Chunked responses  
 

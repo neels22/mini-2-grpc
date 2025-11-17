@@ -168,7 +168,7 @@ Terminal 1 - Server C (Team Green worker):
 python3 team_green/server_c.py configs/process_c.json
 ```
 
-Terminal 2 - Server D (Team Pink worker, shared):
+Terminal 2 - Server D (Team Pink worker):
 ```bash
 python3 team_pink/server_d.py configs/process_d.json
 ```
@@ -336,7 +336,7 @@ mini-2-grpc/
 │   ├── server_b.py              # Team Green leader (Python)
 │   └── server_c.py              # Team Green worker (Python)
 ├── team_pink/
-│   ├── server_d.py              # Worker D (Python, shared across teams)
+│   ├── server_d.py              # Worker D (Python, Team Pink only)
 │   ├── server_e.py              # Team Pink leader (Python)
 │   └── server_f.py              # Worker F (Python)
 ├── common/

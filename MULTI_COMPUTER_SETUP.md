@@ -291,7 +291,7 @@ python3 team_pink/server_f.py configs/process_f.json
 cd mini-2-grpc
 source venv/bin/activate
 
-# Terminal 1 - Server D (shared worker)
+# Terminal 1 - Server D (Team Pink worker on Computer 1)
 python3 team_pink/server_d.py configs/process_d.json
 
 # Terminal 2 - Server B (Team Green leader)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Process B - Team Green Leader Server
-Coordinates Team Green workers (C and D)
+Coordinates Team Green workers (config-driven, currently C)
 """
 
 import json
@@ -79,7 +79,7 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
         local_measurements = self._query_local_data(request)
         print(f"[{self.process_id}] Found {len(local_measurements)} local measurements")
         
-        # Forward query to workers C and D
+        # Forward query to configured workers
         all_measurements = local_measurements + self.forward_to_workers(request)
         
         print(f"[{self.process_id}] Aggregated {len(all_measurements)} measurements from workers")
@@ -159,7 +159,7 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
     
     def forward_to_workers(self, request):
         """
-        Forward query to worker processes (C and D)
+        Forward query to worker processes configured for this leader
         Returns aggregated results from all workers
         """
         all_measurements = []
