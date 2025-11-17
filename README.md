@@ -164,7 +164,7 @@ Two-computer (physical) deployment used in `MULTI_COMPUTER_RESULTS.md`
 | **1**    | `10.10.10.1` | A, B, D   | `gateway/server.py`, `team_green/server_b.py`, `team_pink/server_d.py` |
 | **2**    | `10.10.10.2` | C, E, F   | `team_green/server_c.py`, `team_pink/server_e.py`, `team_pink/server_f.py` |
 
-All six processes are **Python gRPC servers**. The optional C++ client (`client/client.cpp`) can be built and run from either computer if desired.
+All six processes are **Python gRPC servers**.
 
 ### Data Distribution
 - **Server B:** 134K measurements (Aug 10-17)
@@ -226,7 +226,6 @@ Step 10: A streams results in chunks to client
 - ✅ 6-process distributed system with gRPC
 - ✅ Intelligent data partitioning (no overlaps)
 - ✅ Python-based server stack (A–F all Python services)
-- ✅ Optional C++ client implementation
 - ✅ Configuration-driven design
 - ✅ Columnar data model (FireColumnModel)
 
@@ -272,23 +271,10 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Optional: Build C++ Client (for C++ demo only)
-
-The running system now uses **Python servers** for all six processes (A–F).  
-You only need the C++ build if you want to run the C++ client in `client/client.cpp`.
-
-```bash
-make clean
-make client      # builds build/fire_client
-```
-
 ### Rebuild Proto Files (if needed)
 ```bash
 # Python stubs (used by all servers and Python clients)
 python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. proto/fire_service.proto
-
-# C++ stubs (only needed if you modify / rebuild the optional C++ client)
-protoc -I. --cpp_out=. --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` proto/fire_service.proto
 ```
 
 ---
@@ -393,14 +379,12 @@ mini-2-grpc/
 │   ├── server_e.py            # Python leader (E, Team Pink – runs on Computer 2)
 │   └── server_f.py            # Python worker (F, Team Pink)
 ├── common/
-│   ├── FireColumnModel.hpp/.cpp  # C++ data model (used by optional C++ client)
 │   └── fire_column_model.py      # Python data model (used by all Python servers)
 ├── proto/
 │   └── fire_service.proto     # gRPC definitions
 ├── client/
 │   ├── test_client.py         # Basic Python client (used in tests and multi-computer deployment)
-│   ├── advanced_client.py     # Advanced Python demo (cancellation, status, progress)
-│   └── client.cpp             # Optional C++ client
+│   └── advanced_client.py     # Advanced Python demo (cancellation, status, progress)
 ├── configs/
 │   └── process_[a-f].json     # Server configs
 ├── data/
@@ -415,7 +399,7 @@ mini-2-grpc/
 ### Core Requirements
 - ✅ 6 processes with gRPC communication
 - ✅ Correct overlay topology (AB, BC, AE, EF, ED)
-- ✅ Python-based server implementations (A–F) plus optional C++ client
+- ✅ Python-based server implementations (A–F)
 - ✅ Configuration-driven (no hardcoding)
 - ✅ Non-overlapping data partitions
 - ✅ Realistic data structures
@@ -486,8 +470,6 @@ See `QUICK_START_PHASE2.md` for common issues and solutions.
 pkill -f "python3 gateway"
 pkill -f "python3 team_"
 
-# (Optional) rebuild C++ client if you use it
-make clean && make client
 
 # Test again (single-computer)
 ./test_phase2.sh
