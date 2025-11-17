@@ -14,7 +14,6 @@ SERVER_C_SRC = team_green/server_c.cpp
 SERVER_D_SRC = team_pink/server_d.cpp
 SERVER_F_SRC = team_pink/server_f.cpp
 PROTO_SRC = proto/fire_service.pb.cc proto/fire_service.grpc.pb.cc
-COMMON_SRC = common/FireColumnModel.cpp common/readcsv.cpp common/utils.cpp
 
 # Outputs
 CLIENT_OUT = build/fire_client
@@ -35,19 +34,19 @@ $(CLIENT_OUT): $(CLIENT_SRC) $(PROTO_SRC)
 	$(CXX) $(CXXFLAGS) $(CLIENT_SRC) $(PROTO_SRC) -o $(CLIENT_OUT) $(LDFLAGS) $(LIBS)
 	@echo "✓ Built client: $(CLIENT_OUT)"
 
-$(SERVER_C_OUT): $(SERVER_C_SRC) $(PROTO_SRC) $(COMMON_SRC)
+$(SERVER_C_OUT): $(SERVER_C_SRC) $(PROTO_SRC)
 	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $(SERVER_C_SRC) $(PROTO_SRC) $(COMMON_SRC) -o $(SERVER_C_OUT) $(LDFLAGS) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(SERVER_C_SRC) $(PROTO_SRC) -o $(SERVER_C_OUT) $(LDFLAGS) $(LIBS)
 	@echo "✓ Built server C: $(SERVER_C_OUT)"
 
-$(SERVER_D_OUT): $(SERVER_D_SRC) $(PROTO_SRC) $(COMMON_SRC)
+$(SERVER_D_OUT): $(SERVER_D_SRC) $(PROTO_SRC)
 	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $(SERVER_D_SRC) $(PROTO_SRC) $(COMMON_SRC) -o $(SERVER_D_OUT) $(LDFLAGS) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(SERVER_D_SRC) $(PROTO_SRC) -o $(SERVER_D_OUT) $(LDFLAGS) $(LIBS)
 	@echo "✓ Built server D: $(SERVER_D_OUT)"
 
-$(SERVER_F_OUT): $(SERVER_F_SRC) $(PROTO_SRC) $(COMMON_SRC)
+$(SERVER_F_OUT): $(SERVER_F_SRC) $(PROTO_SRC)
 	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $(SERVER_F_SRC) $(PROTO_SRC) $(COMMON_SRC) -o $(SERVER_F_OUT) $(LDFLAGS) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(SERVER_F_SRC) $(PROTO_SRC) -o $(SERVER_F_OUT) $(LDFLAGS) $(LIBS)
 	@echo "✓ Built server F: $(SERVER_F_OUT)"
 	@echo ""
 	@echo "======================================"
