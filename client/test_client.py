@@ -120,7 +120,7 @@ def test_cancel_request(stub):
 def main():
     """Main test function"""
     # Server address (Process A)
-    server_address = "localhost:50051"
+    server_address = "10.10.10.1:50051"
     
     print(f"Connecting to gateway server at {server_address}...")
     

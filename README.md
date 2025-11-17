@@ -2,13 +2,13 @@
 
 A multi-process distributed system for querying fire air quality data using gRPC, featuring **chunked streaming**, **request control**, and intelligent data partitioning across 5 worker servers.
 
-## 🎯 Project Status: ~85% Complete
+## 🎯 Project Status: 100% Complete ✅
 
 ✅ **Phase 1:** Data Partitioning (COMPLETE)  
 ✅ **Phase 2:** Chunked Streaming & Request Control (COMPLETE)  
 ✅ **Phase 2.5:** Performance Analysis (COMPLETE)  
 ✅ **Single-Computer:** Fully Validated & Documented  
-⚠️ **Phase 3:** Multi-Computer Deployment (TODO - Requires 2-3 computers)
+✅ **Phase 3:** Multi-Computer Deployment (COMPLETE - 2 computers, 1.5ms latency)
 
 ---
 
@@ -33,13 +33,14 @@ This automated script:
 
 | Document | Description |
 |----------|-------------|
+| `MULTI_COMPUTER_RESULTS.md` | **✅ Multi-computer deployment results (2 machines)** |
 | `SINGLE_COMPUTER_COMPLETE.md` | **✅ Single-computer deployment guide** |
 | `results/single_computer_analysis.md` | **✅ Performance analysis & benchmarks** |
+| `MULTI_COMPUTER_SETUP.md` | Multi-computer setup guide |
 | `PROJECT_STATUS.md` | Overall project status and checklist |
 | `PHASE1_DATA_PARTITIONING_COMPLETE.md` | Phase 1 technical details |
 | `PHASE2_CHUNKED_STREAMING_COMPLETE.md` | Phase 2 technical details |
 | `presentation-iteration-1.md` | Bug fixes and iterations |
-| `RUN_SYSTEM.md` | Manual server startup guide |
 
 ---
 
@@ -72,6 +73,50 @@ This automated script:
 - **Server E:** 245K measurements (Sep 5-13)
 - **Server F:** 300K measurements (Sep 14-24)
 - **Total:** 1.17M measurements, 0% overlap
+
+### Query Traversal Algorithm
+
+The system uses a **parallel post-order tree traversal** pattern:
+
+**Query Propagation (Top-Down):**
+1. Client → Gateway A (root node)
+2. Gateway A → Team Leaders B & E (parallel broadcast)
+3. Leader B → Worker C
+4. Leader E → Workers D & F (parallel broadcast)
+
+**Result Aggregation (Bottom-Up):**
+1. Workers (C, D, F) query local data and return results to their leaders
+2. Leaders (B, E) aggregate worker results with their own local data
+3. Gateway A aggregates results from both team leaders
+4. Gateway A streams chunked results to client
+
+**Traversal Characteristics:**
+- **Type:** Depth-first with post-order processing
+- **Execution:** Parallel at each level (fan-out to children)
+- **Aggregation:** Bottom-up (children complete before parent)
+- **Complexity:** O(log n) depth for balanced tree, O(n) for visiting all nodes
+
+**Example Query Flow:**
+```
+Query: "Find all PM2.5 measurements with AQI < 100"
+
+Step 1: Client sends query to A
+Step 2: A forwards to B and E (parallel)
+Step 3: B forwards to C, E forwards to D and F (parallel)
+Step 4: C returns 50K results to B
+Step 5: D returns 60K results to E
+Step 6: F returns 70K results to E
+Step 7: B (adds own 30K) returns 80K total to A
+Step 8: E (adds own 40K) returns 170K total to A
+Step 9: A aggregates 250K total results
+Step 10: A streams results in chunks to client
+```
+
+**Benefits:**
+- **Parallelism:** Multiple servers process simultaneously
+- **Load distribution:** Work divided across all servers
+- **Scalability:** Can add more workers without changing traversal
+- **Fault tolerance:** Leader can continue if one worker fails
 
 ---
 
@@ -253,26 +298,25 @@ mini-2-grpc/
 - ✅ **Request cancellation** (client can cancel)
 - ✅ **Connection loss handling** (disconnect detection)
 - ✅ **Status tracking** (progress monitoring)
-- ⚠️ **Multi-computer deployment** (TODO)
+- ✅ **Multi-computer deployment** (2 computers, 1.5ms latency)
 
 ---
 
-## 🔜 Next Steps
+## ✅ Project Complete
 
-### Completed ✅
+### All Phases Completed
 1. ✅ **Performance Analysis** - Complete with benchmarks
 2. ✅ **Single-Computer Validation** - All tests passing
 3. ✅ **Bug Fixes** - Filter logic and gRPC message size
 4. ✅ **Documentation** - Comprehensive guides and analysis
+5. ✅ **Multi-Computer Deployment** - Successfully deployed on 2 computers
+   - ✅ Deployed on 2 physical machines (10.10.10.1, 10.10.10.2)
+   - ✅ Updated configs with actual IP addresses
+   - ✅ Tested cross-network performance (~1.5ms latency)
+   - ✅ Retrieved 421,606 measurements across network
+   - ✅ Documented in `MULTI_COMPUTER_RESULTS.md`
 
-### Remaining ⏳
-1. **Multi-Computer Deployment** (3-4 hours with partner)
-   - Deploy on 2-3 physical machines
-   - Update configs with real hostnames/IPs
-   - Test cross-network performance
-   - Compare with single-computer results
-
-**Estimated time to completion: 3-4 hours (requires 2-3 computers + partner)**
+**Project Status: PRODUCTION READY** 🎉
 
 **Performance Highlights:**
 - 124,008 measurements/second (max throughput)
