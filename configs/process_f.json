@@ -2,7 +2,7 @@
   "identity": "F",
   "role": "worker",
   "team": "pink",
-  "hostname": "localhost",
+  "hostname": "10.10.10.2",
   "port": 50056,
   "neighbors": [],
   "data_partition": {
