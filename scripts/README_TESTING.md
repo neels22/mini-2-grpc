@@ -115,6 +115,7 @@ When you run the test client, watch the server terminals. You should see:
 - Client connects to Process A
 - Process A forwards to B and E
 - Process B forwards to C
+- Process B maintains control link to D (no data forwarding)
 - Process E forwards to D and F
 - All responses propagate back to client
 - No connection errors
@@ -131,6 +132,7 @@ When you run the test client, watch the server terminals. You should see:
 ✅ Network overlay topology  
 ✅ Query forwarding A→B→C  
 ✅ Query forwarding A→E→D,F  
+✅ Control signaling A→B↔D  
 ✅ Result aggregation  
 ✅ Chunked responses  
 

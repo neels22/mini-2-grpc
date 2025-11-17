@@ -8,13 +8,21 @@
     {
       "process_id": "C",
       "hostname": "10.10.10.2",
-      "port": 50053
+      "port": 50053,
+      "query_enabled": true
+    },
+    {
+      "process_id": "D",
+      "hostname": "10.10.10.1",
+      "port": 50054,
+      "query_enabled": false,
+      "purpose": "control-link"
     }
   ],
   "data_partition": {
     "enabled": true,
     "directories": ["20200810", "20200814", "20200815", "20200816", "20200817"]
   },
-  "description": "Team Green Leader - coordinates worker C (removed D to avoid duplication)"
+  "description": "Team Green Leader - coordinates worker C with control link to D"
 }
 

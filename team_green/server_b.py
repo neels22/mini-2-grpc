@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Process B - Team Green Leader Server
-Coordinates Team Green workers (config-driven, currently C)
+Coordinates Team Green workers (config-driven, currently C) and maintains cross-team links
 """
 
 import json
@@ -168,6 +168,10 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
             neighbor_id = neighbor['process_id']
             neighbor_address = f"{neighbor['hostname']}:{neighbor['port']}"
             
+            if not neighbor.get('query_enabled', True):
+                print(f"[{self.process_id}] Skipping query to {neighbor_id} (control-only link)")
+                continue
+
             print(f"[{self.process_id}] Forwarding query to {neighbor_id} at {neighbor_address}")
             
             try:

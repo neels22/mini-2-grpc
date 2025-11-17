@@ -173,12 +173,14 @@ Physical (two-computer) deployment (used in multi-computer tests):
                              /                        \
                             v                          v
             B - Green Leader (10.10.10.1:50052)   E - Pink Leader (10.10.10.2:50055)
-               [Aggregates B+C]                     [Aggregates E+D+F]
+               [Aggregates B+C; control→D]          [Aggregates E+D+F]
                                |                              /           \
                                v                             v             v
     C - Green Worker (10.10.10.2:50053)   D - Pink Worker     F - Pink Worker
             [Team Green data]                (10.10.10.1:50054)  (10.10.10.2:50056)
-                                                             [Reports only to E] [Team Pink data]
+                                                             [Data via E; control link from B]
+
+   Leader B's control link to D is used for coordination/fairness signaling only; D's data remains aggregated through leader E to keep partitions distinct.
 ```
 
 ---

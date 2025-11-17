@@ -34,6 +34,8 @@ Complete distributed fire air quality query system running on a single computer.
            (50053)        (50054)    (50056)
 
 All processes running on localhost (single computer)
+
+Note: Leader B maintains a control-only gRPC link to worker D so the BD edge exists without duplicating Team Pink data during aggregation.
 ```
 
 ---
