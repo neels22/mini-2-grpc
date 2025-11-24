@@ -2,7 +2,8 @@
 # Phase 2 End-to-End Testing Script
 # Tests chunked streaming with request control across all servers
 
-cd /Users/indraneelsarode/Desktop/mini-2-grpc
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
 
 echo "========================================="
 echo "Phase 2: End-to-End Testing"
