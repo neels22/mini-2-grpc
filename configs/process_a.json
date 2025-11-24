@@ -16,6 +16,11 @@
       "port": 50055
     }
   ],
+  "health_monitoring": {
+    "enabled": true,
+    "interval_seconds": 5.0,
+    "timeout_seconds": 2.0
+  },
   "description": "Gateway/Leader process - receives client queries and coordinates Team Green and Team Pink"
 }
 
