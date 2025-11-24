@@ -2,18 +2,18 @@
   "identity": "B",
   "role": "team_leader",
   "team": "green",
-  "hostname": "10.10.10.1",
+  "hostname": "localhost",
   "port": 50052,
   "neighbors": [
     {
       "process_id": "C",
-      "hostname": "10.10.10.2",
+      "hostname": "localhost",
       "port": 50053,
       "query_enabled": true
     },
     {
       "process_id": "D",
-      "hostname": "10.10.10.1",
+      "hostname": "localhost",
       "port": 50054,
       "query_enabled": false,
       "purpose": "control-link"

@@ -2,17 +2,17 @@
   "identity": "A",
   "role": "leader",
   "team": "green",
-  "hostname": "10.10.10.1",
+  "hostname": "localhost",
   "port": 50051,
   "neighbors": [
     {
       "process_id": "B",
-      "hostname": "10.10.10.1",
+      "hostname": "localhost",
       "port": 50052
     },
     {
       "process_id": "E",
-      "hostname": "10.10.10.2",
+      "hostname": "localhost",
       "port": 50055
     }
   ],
