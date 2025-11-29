@@ -6,6 +6,91 @@ We implemented a **circuit breaker pattern** for fault tolerance in our distribu
 
 ---
 
+## Files Changed/Added
+
+### New Files Created (4 files)
+
+1. **`common/circuit_breaker.py`** - Core circuit breaker module
+   - `CircuitState` enum (CLOSED, OPEN, HALF_OPEN)
+   - `CircuitBreaker` class with thread-safe state management
+   - `CircuitBreakerOpenError` exception
+
+2. **`test_circuit_breaker_full.sh`** - Automated test script
+   - Comprehensive automated testing of all circuit breaker scenarios
+   - Starts/stops servers automatically
+   - Tests normal operation, failure detection, fail-fast, recovery, and partial results
+
+3. **`test_cb_quick.py`** - Interactive Python test script
+   - Manual step-by-step testing
+   - Prompts for user actions (kill/restart servers)
+
+4. **`circuit-presentation.md`** - This documentation file
+   - Implementation notes and presentation material
+
+### Modified Files (6 files)
+
+#### Server Implementation Files
+
+1. **`gateway/server.py`**
+   - Added circuit breaker import
+   - Initialized circuit breakers in `__init__` method
+   - Modified `forward_to_team_leaders()` to wrap gRPC calls with circuit breakers
+   - Added `_make_grpc_call()` helper method
+
+2. **`team_green/server_b.py`**
+   - Added circuit breaker import
+   - Initialized circuit breakers in `__init__` method (only for query-enabled neighbors)
+   - Modified `forward_to_workers()` to wrap gRPC calls with circuit breakers
+   - Added `_make_grpc_call()` helper method
+
+3. **`team_pink/server_e.py`**
+   - Added circuit breaker import
+   - Initialized circuit breakers in `__init__` method
+   - Modified `forward_to_workers()` to wrap gRPC calls with circuit breakers
+   - Added `_make_grpc_call()` helper method
+
+#### Configuration Files
+
+4. **`configs/process_a.json`**
+   - Added `circuit_breakers` configuration section with:
+     - `failure_threshold`: 3
+     - `open_timeout_seconds`: 30.0
+     - `success_threshold`: 1
+
+5. **`configs/process_b.json`**
+   - Added `circuit_breakers` configuration section
+
+6. **`configs/process_e.json`**
+   - Added `circuit_breakers` configuration section
+
+### Summary
+
+- **Total Files**: 10 files
+  - **New Files**: 4 (1 core module, 2 test scripts, 1 documentation)
+  - **Modified Files**: 6 (3 server files, 3 configuration files)
+
+### File Changes Summary
+
+```
+NEW FILES:
++ common/circuit_breaker.py
++ test_circuit_breaker_full.sh
++ test_cb_quick.py
++ circuit-presentation.md
+
+MODIFIED FILES:
+M gateway/server.py
+M team_green/server_b.py
+M team_pink/server_e.py
+M configs/process_a.json
+M configs/process_b.json
+M configs/process_e.json
+```
+
+---
+
+---
+
 ## What Was Implemented
 
 ### Core Components
