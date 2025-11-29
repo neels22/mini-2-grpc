@@ -25,6 +25,11 @@
     "interval_seconds": 5.0,
     "timeout_seconds": 2.0
   },
+  "circuit_breakers": {
+    "failure_threshold": 3,
+    "open_timeout_seconds": 30.0,
+    "success_threshold": 1
+  },
   "description": "Team Pink Leader - Sep 5-13 data partition, coordinates workers F and D"
 }
 

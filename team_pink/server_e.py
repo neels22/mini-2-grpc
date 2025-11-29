@@ -19,6 +19,7 @@ import fire_service_pb2
 import fire_service_pb2_grpc
 from fire_column_model import FireColumnModel
 from health_monitor import HealthMonitor, ServerStatus
+from circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 
 
 class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
@@ -59,7 +60,25 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
             if neighbor.get('query_enabled', True):
                 self.health_monitor.register_neighbor(neighbor['process_id'])
         
+        # Initialize circuit breakers for query-enabled neighbors
+        self.circuit_breakers = {}
+        cb_config = config.get('circuit_breakers', {})
+        failure_threshold = cb_config.get('failure_threshold', 3)
+        open_timeout = cb_config.get('open_timeout_seconds', 30.0)
+        success_threshold = cb_config.get('success_threshold', 1)
+        
+        for neighbor in self.neighbors:
+            if neighbor.get('query_enabled', True):
+                neighbor_id = neighbor['process_id']
+                self.circuit_breakers[neighbor_id] = CircuitBreaker(
+                    failure_threshold=failure_threshold,
+                    open_timeout=open_timeout,
+                    success_threshold=success_threshold,
+                    name=f"{self.process_id}->{neighbor_id}"
+                )
+        
         print(f"[{self.process_id}] Health monitoring initialized")
+        print(f"[{self.process_id}] Circuit breakers initialized for {len(self.circuit_breakers)} query-enabled neighbors")
         
         # Start health monitoring
         self._start_health_monitoring()
@@ -174,6 +193,31 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
         
         return measurements
     
+    def _make_grpc_call(self, neighbor_address, request):
+        """
+        Helper method to make gRPC call (used by circuit breaker)
+        
+        Args:
+            neighbor_address: Address of the neighbor server
+            request: InternalQueryRequest to send
+            
+        Returns:
+            InternalQueryResponse from the server
+        """
+        # Create channel to neighbor with increased message size limits
+        options = [
+            ('grpc.max_receive_message_length', 100 * 1024 * 1024),  # 100MB
+            ('grpc.max_send_message_length', 100 * 1024 * 1024),     # 100MB
+        ]
+        channel = grpc.insecure_channel(neighbor_address, options=options)
+        try:
+            stub = fire_service_pb2_grpc.FireQueryServiceStub(channel)
+            # Forward the query
+            response = stub.InternalQuery(request)
+            return response
+        finally:
+            channel.close()
+    
     def forward_to_workers(self, request):
         """
         Forward query to worker processes (F and D)
@@ -187,26 +231,36 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
             
             print(f"[{self.process_id}] Forwarding query to {neighbor_id} at {neighbor_address}")
             
+            # Check circuit breaker state before attempting call
+            if neighbor_id in self.circuit_breakers:
+                cb_state = self.circuit_breakers[neighbor_id].get_state()
+                if cb_state.value == "open":
+                    print(f"[{self.process_id}] Circuit breaker OPEN for {neighbor_id}, skipping call (fail-fast)")
+                    continue
+            
             try:
-                # Create channel to neighbor with increased message size limits
-                options = [
-                    ('grpc.max_receive_message_length', 100 * 1024 * 1024),  # 100MB
-                    ('grpc.max_send_message_length', 100 * 1024 * 1024),     # 100MB
-                ]
-                channel = grpc.insecure_channel(neighbor_address, options=options)
-                stub = fire_service_pb2_grpc.FireQueryServiceStub(channel)
-                
-                # Forward the query
-                response = stub.InternalQuery(request)
+                # Wrap gRPC call with circuit breaker
+                if neighbor_id in self.circuit_breakers:
+                    response = self.circuit_breakers[neighbor_id].call(
+                        lambda: self._make_grpc_call(neighbor_address, request)
+                    )
+                else:
+                    # Fallback if circuit breaker not initialized (shouldn't happen)
+                    response = self._make_grpc_call(neighbor_address, request)
                 
                 # Collect measurements
                 all_measurements.extend(response.measurements)
                 print(f"[{self.process_id}] Received {len(response.measurements)} measurements from {neighbor_id}")
                 
-                channel.close()
-                
+            except CircuitBreakerOpenError:
+                # Circuit is OPEN - fail fast, skip call
+                print(f"[{self.process_id}] Circuit breaker OPEN for {neighbor_id}, skipping call (fail-fast)")
             except grpc.RpcError as e:
+                # gRPC error - circuit breaker records failure automatically
                 print(f"[{self.process_id}] Error contacting {neighbor_id}: {e.code()}")
+            except Exception as e:
+                # Other errors - circuit breaker records failure automatically
+                print(f"[{self.process_id}] Unexpected error contacting {neighbor_id}: {e}")
         
         return all_measurements
     

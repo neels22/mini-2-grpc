@@ -21,6 +21,11 @@
     "interval_seconds": 5.0,
     "timeout_seconds": 2.0
   },
+  "circuit_breakers": {
+    "failure_threshold": 3,
+    "open_timeout_seconds": 30.0,
+    "success_threshold": 1
+  },
   "description": "Gateway/Leader process - receives client queries and coordinates Team Green and Team Pink"
 }
 

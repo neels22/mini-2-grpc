@@ -9,6 +9,128 @@ This document details the implementation of health check and monitoring function
 
 ---
 
+## Files Changed/Added
+
+### New Files Created (3 files)
+
+1. **`common/health_monitor.py`** (~200 lines) - Core health monitoring module
+   - `ServerStatus` enum (HEALTHY, DEGRADED, UNAVAILABLE)
+   - `HealthMonitor` class with thread-safe health tracking
+   - Background monitoring thread support
+   - Status transition logic (1 failure → DEGRADED, 3 failures → UNAVAILABLE)
+
+2. **`test_health_check.py`** - Manual health check test script
+   - Tests all 6 servers' HealthCheck RPC
+   - Verifies health check responses
+   - Tests connectivity to all servers
+
+3. **`test_health_monitoring.sh`** - Automated monitoring test script
+   - Starts all servers automatically
+   - Tests failure detection (kills worker C)
+   - Tests recovery detection (restarts worker C)
+   - Shows status transitions in logs
+
+### Modified Server Files (6 files)
+
+1. **`gateway/server.py`**
+   - Added `HealthMonitor` import
+   - Initialized health monitor in `__init__()` method
+   - Implemented `HealthCheck()` RPC method
+   - Added `_start_health_monitoring()` method for background monitoring
+   - Monitors all neighbors (Team Leaders B and E)
+
+2. **`team_green/server_b.py`**
+   - Added `HealthMonitor` import
+   - Initialized health monitor in `__init__()` method
+   - Implemented `HealthCheck()` RPC method
+   - Added `_start_health_monitoring()` method for background monitoring
+   - Monitors query-enabled neighbors only (Worker C)
+
+3. **`team_pink/server_e.py`**
+   - Added `HealthMonitor` import
+   - Initialized health monitor in `__init__()` method
+   - Implemented `HealthCheck()` RPC method
+   - Added `_start_health_monitoring()` method for background monitoring
+   - Monitors query-enabled neighbors (Workers F and D)
+
+4. **`team_green/server_c.py`**
+   - Implemented `HealthCheck()` RPC method only
+   - No background monitoring (leaf node - doesn't need to monitor others)
+
+5. **`team_pink/server_d.py`**
+   - Implemented `HealthCheck()` RPC method only
+   - No background monitoring (leaf node - doesn't need to monitor others)
+
+6. **`team_pink/server_f.py`**
+   - Implemented `HealthCheck()` RPC method only
+   - No background monitoring (leaf node - doesn't need to monitor others)
+
+### Protocol Files (3 files)
+
+1. **`proto/fire_service.proto`**
+   - Added `HealthRequest` message definition
+   - Added `HealthResponse` message definition
+   - Added `HealthCheck` RPC to `FireQueryService`
+
+2. **`proto/fire_service_pb2.py`** (generated)
+   - Generated Python code for health check messages
+   - Contains `HealthRequest` and `HealthResponse` classes
+
+3. **`proto/fire_service_pb2_grpc.py`** (generated, patched)
+   - Generated Python code for `HealthCheck` RPC
+   - Patched with import fix for compatibility (try/except fallback for relative/absolute imports)
+
+### Configuration Files (3 files)
+
+1. **`configs/process_a.json`**
+   - Added `health_monitoring` configuration section with:
+     - `enabled`: true
+     - `interval_seconds`: 5.0
+     - `timeout_seconds`: 2.0
+
+2. **`configs/process_b.json`**
+   - Added `health_monitoring` configuration section
+
+3. **`configs/process_e.json`**
+   - Added `health_monitoring` configuration section
+
+### Summary
+
+- **Total Files**: 14 files
+  - **New Files**: 3 (1 core module, 2 test scripts)
+  - **Modified Server Files**: 6 (gateway, 2 team leaders, 3 workers)
+  - **Protocol Files**: 3 (1 source, 2 generated)
+  - **Configuration Files**: 3 (process_a, process_b, process_e)
+
+### File Changes Summary
+
+```
+NEW FILES:
++ common/health_monitor.py
++ test_health_check.py
++ test_health_monitoring.sh
+
+MODIFIED SERVER FILES:
+M gateway/server.py
+M team_green/server_b.py
+M team_pink/server_e.py
+M team_green/server_c.py
+M team_pink/server_d.py
+M team_pink/server_f.py
+
+PROTOCOL FILES:
+M proto/fire_service.proto
+M proto/fire_service_pb2.py (generated)
+M proto/fire_service_pb2_grpc.py (generated, patched)
+
+CONFIGURATION FILES:
+M configs/process_a.json
+M configs/process_b.json
+M configs/process_e.json
+```
+
+---
+
 ## Objectives
 
 1. Implement health check RPC for all servers
