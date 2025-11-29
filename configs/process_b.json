@@ -23,6 +23,11 @@
     "enabled": true,
     "directories": ["20200810", "20200814", "20200815", "20200816", "20200817"]
   },
+  "health_monitoring": {
+    "enabled": true,
+    "interval_seconds": 5.0,
+    "timeout_seconds": 2.0
+  },
   "description": "Team Green Leader - coordinates worker C with control link to D"
 }
 

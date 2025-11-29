@@ -9,6 +9,7 @@ import grpc
 from concurrent import futures
 import sys
 import os
+import time
 
 # Add proto and common directories to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'proto'))
@@ -169,6 +170,16 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
             status="pending",
             chunks_delivered=0,
             total_chunks=0
+        )
+    
+    def HealthCheck(self, request, context):
+        """Handle health check requests"""
+        return fire_service_pb2.HealthResponse(
+            healthy=True,
+            status="healthy",
+            timestamp=int(time.time()),
+            process_id=self.process_id,
+            role=self.role
         )
     
     def Notify(self, request, context):

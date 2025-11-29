@@ -96,6 +96,20 @@ message StatusResponse {
     int32 total_chunks = 4;
 }
 
+// Health check messages
+message HealthRequest {
+    string requester_id = 1;  // Who is requesting health check
+    int64 timestamp = 2;      // Request timestamp (optional)
+}
+
+message HealthResponse {
+    bool healthy = 1;         // Is server healthy?
+    string status = 2;        // "healthy", "degraded", "unhealthy"
+    int64 timestamp = 3;      // Server timestamp
+    string process_id = 4;    // Responding process ID
+    string role = 5;          // Server role (optional)
+}
+
 // Service definition
 service FireQueryService {
     // Client -> Gateway (Process A): Submit a query
@@ -112,5 +126,8 @@ service FireQueryService {
     
     // Internal: One-way notification (optional)
     rpc Notify(InternalQueryRequest) returns (StatusResponse);
+    
+    // Health check RPC
+    rpc HealthCheck(HealthRequest) returns (HealthResponse);
 }
 

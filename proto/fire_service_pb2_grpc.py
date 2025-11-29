@@ -3,7 +3,10 @@
 import grpc
 import warnings
 
-import fire_service_pb2 as fire__service__pb2
+try:
+    from . import fire_service_pb2 as proto_dot_fire__service__pb2
+except ImportError:
+    import fire_service_pb2 as proto_dot_fire__service__pb2
 
 GRPC_GENERATED_VERSION = '1.76.0'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +21,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in fire_service_pb2_grpc.py depends on'
+        + ' but the generated code in proto/fire_service_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -37,28 +40,33 @@ class FireQueryServiceStub(object):
         """
         self.Query = channel.unary_stream(
                 '/fire_service.FireQueryService/Query',
-                request_serializer=fire__service__pb2.QueryRequest.SerializeToString,
-                response_deserializer=fire__service__pb2.QueryResponseChunk.FromString,
+                request_serializer=proto_dot_fire__service__pb2.QueryRequest.SerializeToString,
+                response_deserializer=proto_dot_fire__service__pb2.QueryResponseChunk.FromString,
                 _registered_method=True)
         self.CancelRequest = channel.unary_unary(
                 '/fire_service.FireQueryService/CancelRequest',
-                request_serializer=fire__service__pb2.StatusRequest.SerializeToString,
-                response_deserializer=fire__service__pb2.StatusResponse.FromString,
+                request_serializer=proto_dot_fire__service__pb2.StatusRequest.SerializeToString,
+                response_deserializer=proto_dot_fire__service__pb2.StatusResponse.FromString,
                 _registered_method=True)
         self.GetStatus = channel.unary_unary(
                 '/fire_service.FireQueryService/GetStatus',
-                request_serializer=fire__service__pb2.StatusRequest.SerializeToString,
-                response_deserializer=fire__service__pb2.StatusResponse.FromString,
+                request_serializer=proto_dot_fire__service__pb2.StatusRequest.SerializeToString,
+                response_deserializer=proto_dot_fire__service__pb2.StatusResponse.FromString,
                 _registered_method=True)
         self.InternalQuery = channel.unary_unary(
                 '/fire_service.FireQueryService/InternalQuery',
-                request_serializer=fire__service__pb2.InternalQueryRequest.SerializeToString,
-                response_deserializer=fire__service__pb2.InternalQueryResponse.FromString,
+                request_serializer=proto_dot_fire__service__pb2.InternalQueryRequest.SerializeToString,
+                response_deserializer=proto_dot_fire__service__pb2.InternalQueryResponse.FromString,
                 _registered_method=True)
         self.Notify = channel.unary_unary(
                 '/fire_service.FireQueryService/Notify',
-                request_serializer=fire__service__pb2.InternalQueryRequest.SerializeToString,
-                response_deserializer=fire__service__pb2.StatusResponse.FromString,
+                request_serializer=proto_dot_fire__service__pb2.InternalQueryRequest.SerializeToString,
+                response_deserializer=proto_dot_fire__service__pb2.StatusResponse.FromString,
+                _registered_method=True)
+        self.HealthCheck = channel.unary_unary(
+                '/fire_service.FireQueryService/HealthCheck',
+                request_serializer=proto_dot_fire__service__pb2.HealthRequest.SerializeToString,
+                response_deserializer=proto_dot_fire__service__pb2.HealthResponse.FromString,
                 _registered_method=True)
 
 
@@ -101,33 +109,45 @@ class FireQueryServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def HealthCheck(self, request, context):
+        """Health check RPC
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_FireQueryServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Query': grpc.unary_stream_rpc_method_handler(
                     servicer.Query,
-                    request_deserializer=fire__service__pb2.QueryRequest.FromString,
-                    response_serializer=fire__service__pb2.QueryResponseChunk.SerializeToString,
+                    request_deserializer=proto_dot_fire__service__pb2.QueryRequest.FromString,
+                    response_serializer=proto_dot_fire__service__pb2.QueryResponseChunk.SerializeToString,
             ),
             'CancelRequest': grpc.unary_unary_rpc_method_handler(
                     servicer.CancelRequest,
-                    request_deserializer=fire__service__pb2.StatusRequest.FromString,
-                    response_serializer=fire__service__pb2.StatusResponse.SerializeToString,
+                    request_deserializer=proto_dot_fire__service__pb2.StatusRequest.FromString,
+                    response_serializer=proto_dot_fire__service__pb2.StatusResponse.SerializeToString,
             ),
             'GetStatus': grpc.unary_unary_rpc_method_handler(
                     servicer.GetStatus,
-                    request_deserializer=fire__service__pb2.StatusRequest.FromString,
-                    response_serializer=fire__service__pb2.StatusResponse.SerializeToString,
+                    request_deserializer=proto_dot_fire__service__pb2.StatusRequest.FromString,
+                    response_serializer=proto_dot_fire__service__pb2.StatusResponse.SerializeToString,
             ),
             'InternalQuery': grpc.unary_unary_rpc_method_handler(
                     servicer.InternalQuery,
-                    request_deserializer=fire__service__pb2.InternalQueryRequest.FromString,
-                    response_serializer=fire__service__pb2.InternalQueryResponse.SerializeToString,
+                    request_deserializer=proto_dot_fire__service__pb2.InternalQueryRequest.FromString,
+                    response_serializer=proto_dot_fire__service__pb2.InternalQueryResponse.SerializeToString,
             ),
             'Notify': grpc.unary_unary_rpc_method_handler(
                     servicer.Notify,
-                    request_deserializer=fire__service__pb2.InternalQueryRequest.FromString,
-                    response_serializer=fire__service__pb2.StatusResponse.SerializeToString,
+                    request_deserializer=proto_dot_fire__service__pb2.InternalQueryRequest.FromString,
+                    response_serializer=proto_dot_fire__service__pb2.StatusResponse.SerializeToString,
+            ),
+            'HealthCheck': grpc.unary_unary_rpc_method_handler(
+                    servicer.HealthCheck,
+                    request_deserializer=proto_dot_fire__service__pb2.HealthRequest.FromString,
+                    response_serializer=proto_dot_fire__service__pb2.HealthResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -156,8 +176,8 @@ class FireQueryService(object):
             request,
             target,
             '/fire_service.FireQueryService/Query',
-            fire__service__pb2.QueryRequest.SerializeToString,
-            fire__service__pb2.QueryResponseChunk.FromString,
+            proto_dot_fire__service__pb2.QueryRequest.SerializeToString,
+            proto_dot_fire__service__pb2.QueryResponseChunk.FromString,
             options,
             channel_credentials,
             insecure,
@@ -183,8 +203,8 @@ class FireQueryService(object):
             request,
             target,
             '/fire_service.FireQueryService/CancelRequest',
-            fire__service__pb2.StatusRequest.SerializeToString,
-            fire__service__pb2.StatusResponse.FromString,
+            proto_dot_fire__service__pb2.StatusRequest.SerializeToString,
+            proto_dot_fire__service__pb2.StatusResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -210,8 +230,8 @@ class FireQueryService(object):
             request,
             target,
             '/fire_service.FireQueryService/GetStatus',
-            fire__service__pb2.StatusRequest.SerializeToString,
-            fire__service__pb2.StatusResponse.FromString,
+            proto_dot_fire__service__pb2.StatusRequest.SerializeToString,
+            proto_dot_fire__service__pb2.StatusResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -237,8 +257,8 @@ class FireQueryService(object):
             request,
             target,
             '/fire_service.FireQueryService/InternalQuery',
-            fire__service__pb2.InternalQueryRequest.SerializeToString,
-            fire__service__pb2.InternalQueryResponse.FromString,
+            proto_dot_fire__service__pb2.InternalQueryRequest.SerializeToString,
+            proto_dot_fire__service__pb2.InternalQueryResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -264,8 +284,35 @@ class FireQueryService(object):
             request,
             target,
             '/fire_service.FireQueryService/Notify',
-            fire__service__pb2.InternalQueryRequest.SerializeToString,
-            fire__service__pb2.StatusResponse.FromString,
+            proto_dot_fire__service__pb2.InternalQueryRequest.SerializeToString,
+            proto_dot_fire__service__pb2.StatusResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def HealthCheck(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/fire_service.FireQueryService/HealthCheck',
+            proto_dot_fire__service__pb2.HealthRequest.SerializeToString,
+            proto_dot_fire__service__pb2.HealthResponse.FromString,
             options,
             channel_credentials,
             insecure,

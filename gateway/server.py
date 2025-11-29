@@ -14,9 +14,12 @@ import threading
 
 # Add proto directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'proto'))
+# Add common directory to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common'))
 
 import fire_service_pb2
 import fire_service_pb2_grpc
+from health_monitor import HealthMonitor, ServerStatus
 
 
 class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
@@ -32,8 +35,21 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
         self.active_requests = {}  # request_id -> {status, start_time, chunks_sent, cancelled}
         self.request_lock = threading.Lock()
         
+        # Initialize health monitor
+        health_config = config.get('health_monitoring', {})
+        health_check_interval = health_config.get('interval_seconds', 5.0)
+        self.health_monitor = HealthMonitor(self.process_id, health_check_interval)
+        
+        # Register all neighbors for monitoring
+        for neighbor in self.neighbors:
+            self.health_monitor.register_neighbor(neighbor['process_id'])
+        
         print(f"[{self.process_id}] Initialized as {self.role}")
         print(f"[{self.process_id}] Neighbors: {[n['process_id'] for n in self.neighbors]}")
+        print(f"[{self.process_id}] Health monitoring initialized for {len(self.neighbors)} neighbors")
+        
+        # Start health monitoring
+        self._start_health_monitoring()
     
     def Query(self, request, context):
         """
@@ -242,6 +258,68 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
                     chunks_delivered=0,
                     total_chunks=0
                 )
+    
+    def HealthCheck(self, request, context):
+        """
+        Handle health check requests from other servers
+        Returns current health status of this server
+        """
+        return fire_service_pb2.HealthResponse(
+            healthy=True,
+            status="healthy",
+            timestamp=int(time.time()),
+            process_id=self.process_id,
+            role=self.role
+        )
+    
+    def _start_health_monitoring(self):
+        """Start background health check thread"""
+        def health_check_loop(monitor):
+            """Periodically check health of neighbors"""
+            while monitor.running:
+                for neighbor in self.neighbors:
+                    neighbor_id = neighbor['process_id']
+                    neighbor_address = f"{neighbor['hostname']}:{neighbor['port']}"
+                    
+                    try:
+                        # Create channel with short timeout for health checks
+                        channel = grpc.insecure_channel(neighbor_address)
+                        stub = fire_service_pb2_grpc.FireQueryServiceStub(channel)
+                        
+                        health_request = fire_service_pb2.HealthRequest(
+                            requester_id=self.process_id,
+                            timestamp=int(time.time())
+                        )
+                        
+                        # Health check with 2 second timeout
+                        health_config = self.config.get('health_monitoring', {})
+                        timeout = health_config.get('timeout_seconds', 2.0)
+                        response = stub.HealthCheck(health_request, timeout=timeout)
+                        
+                        # Update health status
+                        monitor.update_health(neighbor_id, response.healthy)
+                        
+                        channel.close()
+                        
+                    except grpc.RpcError as e:
+                        # Health check failed
+                        monitor.update_health(neighbor_id, False)
+                        # Only log if status changed (to reduce log spam)
+                        status = monitor.get_status(neighbor_id)
+                        if status == ServerStatus.UNAVAILABLE:
+                            # UNIMPLEMENTED can occur when server is dead/unreachable
+                            # UNAVAILABLE means server is down
+                            # DEADLINE_EXCEEDED means timeout
+                            error_msg = f"{e.code()}"
+                            if e.code() == grpc.StatusCode.UNIMPLEMENTED:
+                                error_msg += " (server may be down or unreachable)"
+                            print(f"[{self.process_id}] Health check failed for {neighbor_id}: {error_msg}")
+                    except Exception as e:
+                        monitor.update_health(neighbor_id, False)
+                        print(f"[{self.process_id}] Health check error for {neighbor_id}: {e}")
+        
+        self.health_monitor.start_monitoring(health_check_loop)
+        print(f"[{self.process_id}] Background health monitoring started")
     
     def InternalQuery(self, request, context):
         """Handle internal queries from other processes"""
