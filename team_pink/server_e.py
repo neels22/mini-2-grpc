@@ -106,19 +106,26 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
         Handle internal queries from other processes (mainly from A)
         This is the main method for team leaders
         """
-        print(f"[{self.process_id}] Internal query from {request.requesting_process}")
+        query_start = time.time()
+        print(f"[{self.process_id}] 📥 Internal query from {request.requesting_process}")
         print(f"  Request ID: {request.request_id}")
         print(f"  Original request: {request.original_request_id}")
         print(f"  Query type: {request.query_type}")
         
         # Query local FireColumnModel data (E acts as worker too)
+        local_start = time.time()
         local_measurements = self._query_local_data(request)
-        print(f"[{self.process_id}] Found {len(local_measurements)} local measurements")
+        local_time = time.time() - local_start
+        print(f"[{self.process_id}] Found {len(local_measurements)} local measurements (took {local_time:.2f}s)")
         
         # Forward query to workers F and D
-        all_measurements = local_measurements + self.forward_to_workers(request)
+        forward_start = time.time()
+        worker_measurements = self.forward_to_workers(request)
+        forward_time = time.time() - forward_start
+        all_measurements = local_measurements + worker_measurements
         
-        print(f"[{self.process_id}] Aggregated {len(all_measurements)} measurements from workers")
+        total_time = time.time() - query_start
+        print(f"[{self.process_id}] Aggregated {len(all_measurements)} measurements from workers (forward took {forward_time:.2f}s, total {total_time:.2f}s)")
         
         # Return response with aggregated results
         response = fire_service_pb2.InternalQueryResponse(
@@ -254,13 +261,21 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
                 
             except CircuitBreakerOpenError:
                 # Circuit is OPEN - fail fast, skip call
-                print(f"[{self.process_id}] Circuit breaker OPEN for {neighbor_id}, skipping call (fail-fast)")
+                print(f"[{self.process_id}] ⏭️ Circuit breaker OPEN for {neighbor_id}, skipping call (fail-fast)")
             except grpc.RpcError as e:
                 # gRPC error - circuit breaker records failure automatically
-                print(f"[{self.process_id}] Error contacting {neighbor_id}: {e.code()}")
+                error_code = e.code()
+                if neighbor_id in self.circuit_breakers:
+                    stats = self.circuit_breakers[neighbor_id].get_stats()
+                    fc = stats.get('failure_count', 0)
+                    print(f"[{self.process_id}] ❌ Error contacting {neighbor_id}: {error_code} (failure count: {fc}/3)")
+                else:
+                    print(f"[{self.process_id}] ❌ Error contacting {neighbor_id}: {error_code}")
+                if error_code == grpc.StatusCode.DEADLINE_EXCEEDED:
+                    print(f"[{self.process_id}] ⚠️ TIMEOUT for {neighbor_id} - this may cause E to be slow responding to Gateway A")
             except Exception as e:
                 # Other errors - circuit breaker records failure automatically
-                print(f"[{self.process_id}] Unexpected error contacting {neighbor_id}: {e}")
+                print(f"[{self.process_id}] ❌ Unexpected error contacting {neighbor_id}: {type(e).__name__}: {e}")
         
         return all_measurements
     

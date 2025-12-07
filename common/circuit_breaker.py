@@ -122,7 +122,9 @@ class CircuitBreaker:
             
             # Log state change if it occurred
             if old_state != self.state:
-                print(f"[CircuitBreaker-{self.name}] State transition: {old_state.value} -> {self.state.value}")
+                print(f"[CircuitBreaker-{self.name}] 🟢 State transition: {old_state.value} -> {self.state.value}")
+                if self.state == CircuitState.CLOSED:
+                    print(f"[CircuitBreaker-{self.name}] ✅ Circuit CLOSED - normal operation resumed")
     
     def _record_failure(self):
         """Record a failed call"""
@@ -142,8 +144,10 @@ class CircuitBreaker:
             
             # Log state change if it occurred
             if old_state != self.state:
-                print(f"[CircuitBreaker-{self.name}] State transition: {old_state.value} -> {self.state.value} "
+                print(f"[CircuitBreaker-{self.name}] 🔴 State transition: {old_state.value} -> {self.state.value} "
                       f"(failure_count={self.failure_count})")
+                if self.state == CircuitState.OPEN:
+                    print(f"[CircuitBreaker-{self.name}] ⚠️ Circuit OPENED - will block calls for {self.open_timeout}s")
     
     def _transition_to_open(self):
         """Transition circuit to OPEN state"""

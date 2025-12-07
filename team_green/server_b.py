@@ -258,13 +258,19 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
                 
             except CircuitBreakerOpenError:
                 # Circuit is OPEN - fail fast, skip call
-                print(f"[{self.process_id}] Circuit breaker OPEN for {neighbor_id}, skipping call (fail-fast)")
+                print(f"[{self.process_id}] ⏭️ Circuit breaker OPEN for {neighbor_id}, skipping call (fail-fast)")
             except grpc.RpcError as e:
                 # gRPC error - circuit breaker records failure automatically
-                print(f"[{self.process_id}] Error contacting {neighbor_id}: {e.code()}")
+                error_code = e.code()
+                if neighbor_id in self.circuit_breakers:
+                    stats = self.circuit_breakers[neighbor_id].get_stats()
+                    fc = stats.get('failure_count', 0)
+                    print(f"[{self.process_id}] ❌ Error contacting {neighbor_id}: {error_code} (failure count: {fc}/3)")
+                else:
+                    print(f"[{self.process_id}] ❌ Error contacting {neighbor_id}: {error_code}")
             except Exception as e:
                 # Other errors - circuit breaker records failure automatically
-                print(f"[{self.process_id}] Unexpected error contacting {neighbor_id}: {e}")
+                print(f"[{self.process_id}] ❌ Unexpected error contacting {neighbor_id}: {type(e).__name__}: {e}")
         
         return all_measurements
     

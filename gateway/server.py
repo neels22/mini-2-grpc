@@ -193,34 +193,52 @@ class FireQueryServiceImpl(fire_service_pb2_grpc.FireQueryServiceServicer):
             neighbor_id = neighbor['process_id']
             neighbor_address = f"{neighbor['hostname']}:{neighbor['port']}"
             
-            print(f"[{self.process_id}] Forwarding query to Team Leader {neighbor_id} at {neighbor_address}")
+            print(f"[{self.process_id}] 📤 Forwarding query to Team Leader {neighbor_id} at {neighbor_address}")
             
             # Check circuit breaker state before attempting call
             cb_state = self.circuit_breakers[neighbor_id].get_state()
             if cb_state.value == "open":
-                print(f"[{self.process_id}] Circuit breaker OPEN for {neighbor_id}, skipping call (fail-fast)")
+                stats = self.circuit_breakers[neighbor_id].get_stats()
+                time_since_failure = stats.get('time_since_last_failure', 0)
+                print(f"[{self.process_id}] ⏭️ Circuit breaker OPEN for {neighbor_id}, skipping call (fail-fast)")
+                if time_since_failure:
+                    print(f"[{self.process_id}]    Circuit opened {time_since_failure:.1f}s ago (needs {self.circuit_breakers[neighbor_id].open_timeout}s to recover)")
                 continue
             
             try:
                 # Wrap gRPC call with circuit breaker
+                start_time = time.time()
                 response = self.circuit_breakers[neighbor_id].call(
                     lambda: self._make_grpc_call(neighbor_address, internal_request)
                 )
+                elapsed = time.time() - start_time
                 
                 # Collect measurements
                 measurements_count = len(response.measurements)
                 all_measurements.extend(response.measurements)
-                print(f"[{self.process_id}] Received {measurements_count} measurements from {neighbor_id}")
+                print(f"[{self.process_id}] ✅ Received {measurements_count} measurements from {neighbor_id} in {elapsed:.2f}s")
                 
             except CircuitBreakerOpenError:
                 # Circuit is OPEN - fail fast, skip call
                 print(f"[{self.process_id}] Circuit breaker OPEN for {neighbor_id}, skipping call (fail-fast)")
             except grpc.RpcError as e:
                 # gRPC error - circuit breaker records failure automatically
-                print(f"[{self.process_id}] Error contacting {neighbor_id}: {e.code()}: {e.details()}")
+                error_code = e.code()
+                error_details = e.details()
+                # Get failure count after circuit breaker records it
+                stats = self.circuit_breakers[neighbor_id].get_stats()
+                failure_count = stats.get('failure_count', 0)
+                print(f"[{self.process_id}] ❌ Error contacting {neighbor_id}: {error_code}: {error_details}")
+                print(f"[{self.process_id}]    Circuit breaker {neighbor_id} failure count: {failure_count}/3")
+                if error_code == grpc.StatusCode.DEADLINE_EXCEEDED:
+                    print(f"[{self.process_id}] ⚠️ TIMEOUT detected for {neighbor_id} - this may cause cascading failure")
+                elif error_code == grpc.StatusCode.UNAVAILABLE:
+                    print(f"[{self.process_id}] ⚠️ UNAVAILABLE for {neighbor_id} - server may be down")
             except Exception as e:
                 # Other errors - circuit breaker records failure automatically
-                print(f"[{self.process_id}] Unexpected error contacting {neighbor_id}: {e}")
+                failure_count = self.circuit_breakers[neighbor_id].failure_count
+                print(f"[{self.process_id}] Unexpected error contacting {neighbor_id}: {type(e).__name__}: {e}")
+                print(f"[{self.process_id}] Circuit breaker {neighbor_id} failure count: {failure_count + 1}/3")
         
         return all_measurements
     
